@@ -12,16 +12,20 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
     const [billMode, setBillMode] = useState(null);
     const [paymentMethod, setPaymentMethod] = useState('Tiền mặt');
 
+    // STATE DỊCH VỤ
     const [availableServices, setAvailableServices] = useState([]);
     const [selectedServiceId, setSelectedServiceId] = useState('');
     const [serviceQuantity, setServiceQuantity] = useState(1);
     const [isAddingService, setIsAddingService] = useState(false);
 
+    // STATE CHO POPUP THÔNG BÁO TÙY CHỈNH
+    const [notify, setNotify] = useState({ isOpen: false, message: '', type: 'success', onConfirm: null });
+
     const LE_TAN_ID = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 
     useEffect(() => {
         if (selectedBooking) {
-            setGuests([]); 
+            setGuests([]);
             setNewGuest({ fullName: '', cccd: '', nationality: 'Việt Nam' });
             setIsCheckinMode(openCheckinFormDirectly || false);
             setBillMode(null);
@@ -35,10 +39,14 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
     }, [selectedBooking, activeTab, openCheckinFormDirectly]);
 
     const loadServicesList = async () => {
-        const svcs = await fetchAllServices();
-        setAvailableServices(svcs || []);
-        if (svcs && svcs.length > 0) {
-            setSelectedServiceId(svcs[0].id);
+        try {
+            const svcs = await fetchAllServices();
+            setAvailableServices(svcs || []);
+            if (svcs && svcs.length > 0) {
+                setSelectedServiceId(svcs[0].id);
+            }
+        } catch (error) {
+            console.error("Lỗi lấy danh sách dịch vụ", error);
         }
     };
 
@@ -58,21 +66,21 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
         }
     };
 
+    const showNotification = (message, type = 'success', onConfirm = null) => {
+        setNotify({ isOpen: true, message, type, onConfirm });
+    };
+
+    const handleCloseNotify = () => {
+        const { onConfirm } = notify;
+        setNotify({ ...notify, isOpen: false });
+        if (onConfirm) onConfirm();
+    };
+
     if (!selectedBooking) return null;
 
     const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
-    
-    const formatDate = (dateObj) => {
-        if (!dateObj) return 'Chưa cập nhật';
-        const d = new Date(dateObj);
-        return `${d.toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'})} - ${d.toLocaleDateString('vi-VN')}`;
-    };
-
-    const formatCheckOutDate = (dateObj) => {
-        if (!dateObj) return 'N/A';
-        const d = new Date(dateObj);
-        return d.toLocaleDateString('vi-VN');
-    };
+    const formatDate = (dateObj) => dateObj ? `${new Date(dateObj).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} - ${new Date(dateObj).toLocaleDateString('vi-VN')}` : 'Chưa cập nhật';
+    const formatCheckOutDate = (dateObj) => dateObj ? new Date(dateObj).toLocaleDateString('vi-VN') : 'N/A';
 
     const handleAddService = async () => {
         if (!selectedServiceId || serviceQuantity < 1) return;
@@ -87,12 +95,12 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
             };
 
             await addServiceToRoom(payload);
-            alert(`Đã thêm ${serviceQuantity}x ${svc.tenDichVu} thành công!`);
-            
+            showNotification(`Đã thêm ${serviceQuantity}x ${svc.tenDichVu} thành công!`, 'success');
+
             await loadCheckoutData();
             setServiceQuantity(1);
         } catch (error) {
-            alert("Lỗi khi thêm dịch vụ. Vui lòng thử lại!");
+            showNotification("Lỗi khi thêm dịch vụ. Vui lòng thử lại!", 'error');
         } finally {
             setIsAddingService(false);
         }
@@ -103,23 +111,24 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
             setGuests([...guests, newGuest]);
             setNewGuest({ fullName: '', cccd: '', nationality: 'Việt Nam' });
         } else {
-            alert("Vui lòng nhập ít nhất Họ tên và CCCD!");
+            showNotification("Vui lòng nhập ít nhất Họ tên và CCCD!", 'error');
         }
     };
 
     const handleConfirmCheckin = async () => {
         if (guests.length === 0) {
-            alert("Vui lòng thêm ít nhất 1 khách lưu trú!");
+            showNotification("Vui lòng thêm ít nhất 1 khách lưu trú!", 'error');
             return;
         }
 
         try {
             await submitCheckin(selectedBooking.id, selectedBooking.chiTietDatPhongId, guests);
-            alert("Check-in thành công!");
-            if (onRefresh) onRefresh();
-            setSelectedBooking(null);
+            showNotification("Check-in thành công!", 'success', () => {
+                if (onRefresh) onRefresh();
+                setSelectedBooking(null);
+            });
         } catch (error) {
-            alert("Có lỗi xảy ra khi Check-in.");
+            showNotification("Có lỗi xảy ra khi Check-in.", 'error');
         }
     };
 
@@ -132,11 +141,12 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
             } else {
                 await confirmCheckout(selectedBooking.id, paymentMethod, LE_TAN_ID);
             }
-            alert("Thanh toán thành công!");
-            if (onRefresh) onRefresh();
-            setSelectedBooking(null);
+            showNotification("Thanh toán thành công!", 'success', () => {
+                if (onRefresh) onRefresh();
+                setSelectedBooking(null);
+            });
         } catch (error) {
-            alert("Đã xảy ra lỗi khi thanh toán.");
+            showNotification("Đã xảy ra lỗi khi thanh toán.", 'error');
         }
     };
 
@@ -165,20 +175,19 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
     return (
         <>
             <div className="fixed inset-0 bg-black/20 z-40" onClick={() => setSelectedBooking(null)}></div>
-            
+
             <div className="fixed top-0 right-0 h-full w-[480px] bg-white shadow-2xl z-50 transform transition-transform flex flex-col animate-slide-in-right">
-                
+
                 <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
                     <div className="flex items-center gap-3">
                         <span className="bg-blue-600 text-white text-sm font-bold px-3 py-1.5 rounded-full shadow-sm">
                             PHÒNG {rooms.find(r => r.id === selectedBooking.roomId)?.soPhong || 'N/A'}
                         </span>
-                        <span className={`text-xs font-bold px-2.5 py-1 rounded-md ${
-                            (selectedBooking.status === 'Chuẩn bị' || selectedBooking.status === 'Chờ xác nhận') ? 'bg-emerald-100 text-emerald-700' : 
-                            (selectedBooking.status === 'Đang ở' || selectedBooking.status === 'Đã nhận phòng') ? 'bg-blue-100 text-blue-700' : 
-                            (selectedBooking.status === 'Đã trả phòng' || selectedBooking.status === 'Hoàn tất') ? 'bg-gray-100 text-gray-700' :
-                            'bg-orange-100 text-orange-700'
-                        }`}>
+                        <span className={`text-xs font-bold px-2.5 py-1 rounded-md ${(selectedBooking.status === 'Chuẩn bị' || selectedBooking.status === 'Chờ xác nhận') ? 'bg-emerald-100 text-emerald-700' :
+                                (selectedBooking.status === 'Đang ở' || selectedBooking.status === 'Đã nhận phòng') ? 'bg-blue-100 text-blue-700' :
+                                    (selectedBooking.status === 'Đã trả phòng' || selectedBooking.status === 'Hoàn tất') ? 'bg-gray-100 text-gray-700' :
+                                        'bg-orange-100 text-orange-700'
+                            }`}>
                             {selectedBooking.status}
                         </span>
                     </div>
@@ -199,7 +208,8 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
                 )}
 
                 <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
-                    
+
+                    {/* TAB: THÔNG TIN CHI TIẾT */}
                     {activeTab === 'info' && !isCheckinMode && !billMode && (
                         <div className="space-y-6 animate-fade-in">
                             <div>
@@ -238,6 +248,7 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
                         </div>
                     )}
 
+                    {/* FORM CHECK-IN */}
                     {activeTab === 'info' && isCheckinMode && (
                         <div className="animate-slide-in-right">
                             <div className="flex items-center justify-between mb-4">
@@ -246,20 +257,20 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
                                     ← Quay lại thông tin
                                 </button>
                             </div>
-                            
+
                             <div className="bg-white p-4 rounded-xl border border-blue-100 shadow-md mb-5">
                                 <div className="grid grid-cols-2 gap-3 mb-4">
                                     <div className="col-span-2">
                                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Họ và tên *</label>
-                                        <input type="text" value={newGuest.fullName} onChange={e => setNewGuest({...newGuest, fullName: e.target.value})} className="w-full border border-gray-200 rounded-md px-3 py-2.5 text-sm outline-none focus:border-blue-500" placeholder="VD: Nguyễn Văn A" />
+                                        <input type="text" value={newGuest.fullName} onChange={e => setNewGuest({ ...newGuest, fullName: e.target.value })} className="w-full border border-gray-200 rounded-md px-3 py-2.5 text-sm outline-none focus:border-blue-500" placeholder="VD: Nguyễn Văn A" />
                                     </div>
-                                    <div>
+                                    <div className="col-span-1">
                                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">CCCD / Passport *</label>
-                                        <input type="text" value={newGuest.cccd} onChange={e => setNewGuest({...newGuest, cccd: e.target.value})} className="w-full border border-gray-200 rounded-md px-3 py-2.5 text-sm outline-none focus:border-blue-500" placeholder="Số giấy tờ" />
+                                        <input type="text" value={newGuest.cccd} onChange={e => setNewGuest({ ...newGuest, cccd: e.target.value })} className="w-full border border-gray-200 rounded-md px-3 py-2.5 text-sm outline-none focus:border-blue-500" placeholder="Số giấy tờ" />
                                     </div>
-                                    <div>
+                                    <div className="col-span-1">
                                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Quốc tịch</label>
-                                        <input type="text" value={newGuest.nationality} onChange={e => setNewGuest({...newGuest, nationality: e.target.value})} className="w-full border border-gray-200 rounded-md px-3 py-2.5 text-sm outline-none focus:border-blue-500" />
+                                        <input type="text" value={newGuest.nationality} onChange={e => setNewGuest({ ...newGuest, nationality: e.target.value })} className="w-full border border-gray-200 rounded-md px-3 py-2.5 text-sm outline-none focus:border-blue-500" />
                                     </div>
                                 </div>
                                 <button onClick={handleAddGuest} className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold py-2.5 rounded-lg text-sm border border-blue-200 transition border-dashed">
@@ -285,6 +296,7 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
                         </div>
                     )}
 
+                    {/* TAB: GỌI DỊCH VỤ */}
                     {activeTab === 'services' && !billMode && (
                         <div className="space-y-6 animate-fade-in">
                             {(selectedBooking.status === 'Đang ở' || selectedBooking.status === 'Đã nhận phòng') ? (
@@ -295,7 +307,7 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
                                             Gọi thêm dịch vụ
                                         </h4>
                                         <div className="space-y-3">
-                                            <select 
+                                            <select
                                                 className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none focus:border-blue-500 bg-gray-50"
                                                 value={selectedServiceId}
                                                 onChange={(e) => setSelectedServiceId(e.target.value)}
@@ -308,15 +320,15 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
                                             <div className="flex gap-3">
                                                 <div className="flex-1 flex items-center border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
                                                     <span className="px-4 text-sm text-gray-500 font-medium border-r border-gray-200 bg-gray-100">Số lượng</span>
-                                                    <input 
-                                                        type="number" 
-                                                        min="1" 
+                                                    <input
+                                                        type="number"
+                                                        min="1"
                                                         className="w-full p-3 text-sm text-center outline-none focus:border-blue-500 bg-transparent font-bold"
                                                         value={serviceQuantity}
                                                         onChange={(e) => setServiceQuantity(parseInt(e.target.value) || 1)}
                                                     />
                                                 </div>
-                                                <button 
+                                                <button
                                                     onClick={handleAddService}
                                                     disabled={isAddingService || availableServices.length === 0}
                                                     className="px-6 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg transition shadow-md whitespace-nowrap"
@@ -354,6 +366,7 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
                         </div>
                     )}
 
+                    {/* TAB: CHECKOUT TỔNG QUAN */}
                     {activeTab === 'checkout' && !billMode && (
                         <div className="space-y-6 animate-fade-in">
                             {loadingCheckout ? (
@@ -407,12 +420,15 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
                         </div>
                     )}
 
+                    {/* HÓA ĐƠN CHI TIẾT */}
                     {billMode && invoice && (() => {
                         const isTotal = billMode === 'total';
                         const hienThiTienPhong = isTotal ? tienPhong : selectedBooking.price;
-                        const hienThiDichVu = isTotal ? tienDichVu : 0; 
-                        const hienThiDenBu = isTotal ? tienDenBu : 0;
+                        const hienThiDichVu = invoice.tienDichVu || 0;
+                        const hienThiDenBu = invoice.tienDenBu || 0; // Đã thêm lấy tiền đền bù
                         const hienThiTienCoc = isTotal ? tienDaCoc : (tienDaCoc >= selectedBooking.price ? selectedBooking.price : 0);
+
+                        // CỘNG THÊM TIỀN ĐỀN BÙ VÀO TỔNG THANH TOÁN
                         const tongCanThanhToan = Math.max(0, (hienThiTienPhong + hienThiDichVu + hienThiDenBu) - hienThiTienCoc);
 
                         return (
@@ -434,18 +450,20 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
                                             <span className="text-gray-600 font-medium">Tiền phòng:</span>
                                             <span className="font-bold">{formatCurrency(hienThiTienPhong)}</span>
                                         </div>
-                                        
+
                                         <div className="flex justify-between text-sm border-b border-dashed border-gray-100 pb-2 pt-2">
                                             <span className="text-gray-600 font-medium">Dịch vụ phát sinh:</span>
                                             <span className="font-bold text-orange-600">{formatCurrency(hienThiDichVu)}</span>
                                         </div>
 
-                                        {hienThiDenBu > 0 && (
-                                            <div className="flex justify-between text-sm border-b border-dashed border-gray-100 pb-2 pt-2">
-                                                <span className="text-gray-600 font-medium">Phí đền bù hư hại:</span>
-                                                <span className="font-bold">{formatCurrency(hienThiDenBu)}</span>
-                                            </div>
-                                        )}
+                                        {/* HIỂN THỊ TIỀN ĐỀN BÙ VÀO BILL */}
+                                        {/* PHÍ TÀI SẢN / ĐỀN BÙ (LUÔN HIỂN THỊ) */}
+                                        <div className="flex justify-between text-sm border-b border-dashed border-gray-100 pb-2 pt-2">
+                                            <span className="text-gray-600 font-medium">Phí đền bù hư hại:</span>
+                                            <span className={`font-bold ${hienThiDenBu > 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                                                {formatCurrency(hienThiDenBu)}
+                                            </span>
+                                        </div>
 
                                         {hienThiTienCoc > 0 && (
                                             <div className="flex justify-between text-sm text-emerald-600 pt-2">
@@ -481,10 +499,10 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
                     })()}
                 </div>
 
+                {/* FOOTER BUTTONS */}
                 <div className="p-6 bg-white border-t border-gray-100 shrink-0">
-                    
                     {activeTab === 'info' && !isCheckinMode && !billMode && (selectedBooking.status === 'Chuẩn bị' || selectedBooking.status === 'Chờ xác nhận' || selectedBooking.status === 'Quá hạn Check-in') && (
-                        <button 
+                        <button
                             onClick={() => setIsCheckinMode(true)}
                             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition"
                         >
@@ -493,7 +511,7 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
                     )}
 
                     {activeTab === 'info' && isCheckinMode && (
-                        <button 
+                        <button
                             onClick={handleConfirmCheckin}
                             className={`w-full font-bold py-3.5 rounded-xl shadow-lg transition ${guests.length > 0 ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
                             disabled={guests.length === 0}
@@ -503,8 +521,8 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
                     )}
 
                     {billMode && (
-                        <button 
-                            onClick={handleExecutePayment} 
+                        <button
+                            onClick={handleExecutePayment}
                             className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl shadow-lg transition text-base flex justify-center items-center gap-2"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -513,6 +531,35 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
                     )}
                 </div>
             </div>
+
+            {/* POPUP THÔNG BÁO TÙY CHỈNH THAY THẾ ALERT */}
+            {notify.isOpen && (
+                <div className="fixed inset-0 bg-black/40 z-[60] flex items-center justify-center animate-fade-in" onClick={handleCloseNotify}>
+                    <div className="bg-white rounded-2xl shadow-2xl p-6 w-[340px] text-center transform transition-all scale-100 animate-scale-up" onClick={e => e.stopPropagation()}>
+                        <div className={`mx-auto flex items-center justify-center h-14 w-14 rounded-full ${notify.type === 'success' ? 'bg-emerald-100' : 'bg-red-100'} mb-4`}>
+                            {notify.type === 'success' ? (
+                                <svg className="h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                            ) : (
+                                <svg className="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            )}
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">
+                            {notify.type === 'success' ? 'Thành công' : 'Thông báo'}
+                        </h3>
+                        <p className="text-sm text-gray-600 mb-6">{notify.message}</p>
+                        <button
+                            onClick={handleCloseNotify}
+                            className={`w-full font-bold py-3 rounded-xl transition shadow-md ${notify.type === 'success' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-red-600 hover:bg-red-700 text-white'}`}
+                        >
+                            Đồng ý
+                        </button>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

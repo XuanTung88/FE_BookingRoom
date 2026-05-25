@@ -2,23 +2,23 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 
 // Pages
-import Home                from './pages/Home';
-import AuthPage            from './pages/AuthPage';
-import BookingSearchPage   from './pages/BookingSearchPage';
-import BookingConfirmPage  from './pages/BookingConfirmPage';
-import BookingPaymentPage  from './pages/BookingPaymentPage';
+import Home from './pages/Home';
+import AuthPage from './pages/AuthPage';
+import BookingSearchPage from './pages/BookingSearchPage';
+import BookingConfirmPage from './pages/BookingConfirmPage';
+import BookingPaymentPage from './pages/BookingPaymentPage';
 import ProfileCompletePage from './pages/ProfileCompletePage';
-import BookingHistoryPage  from './pages/BookingHistoryPage';
+import BookingHistoryPage from './pages/BookingHistoryPage';
 
 // Admin pages
-import AdminDashboard        from './pages/AdminDashboard';
-import RoomManagement        from './pages/RoomManagement';
-import RoomTypeManagement    from './pages/RoomTypeManagement';
-import ServiceManagement     from './pages/ServiceManagement';
-import EquipmentManagement   from './pages/EquipmentManagement';
+import AdminDashboard from './pages/AdminDashboard';
+import RoomManagement from './pages/RoomManagement';
+import RoomTypeManagement from './pages/RoomTypeManagement';
+import ServiceManagement from './pages/ServiceManagement';
+import EquipmentManagement from './pages/EquipmentManagement';
 import PricePolicyManagement from './pages/PricePolicyManagement';
-import AdminStaffPage     from './pages/AdminStaffPage';
-import AdminRolesPage     from './pages/AdminRolesPage';
+import AdminStaffPage from './pages/AdminStaffPage';
+import AdminRolesPage from './pages/AdminRolesPage';
 import AdminCustomersPage from './pages/AdminCustomersPage';
 
 
@@ -39,23 +39,23 @@ export default function App() {
       <Toaster position="bottom-right" reverseOrder={false} />
       <Routes>
         {/* ── Public ──────────────────────────────────────────── */}
-        <Route path="/"          element={<Home />} />
-        <Route path="/login"     element={<AuthPage />} />
-        <Route path="/register"  element={<AuthPage />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<AuthPage />} />
+        <Route path="/register" element={<AuthPage />} />
 
         {/* ── Booking flow ────────────────────────────────────── */}
-        <Route path="/booking"          element={<BookingSearchPage />} />
-        <Route path="/booking/confirm"  element={
+        <Route path="/booking" element={<BookingSearchPage />} />
+        <Route path="/booking/confirm" element={
           <RequireAuth redirect="/login?redirect=/booking">
             <BookingConfirmPage />
           </RequireAuth>
         } />
-        <Route path="/booking/payment"  element={
+        <Route path="/booking/payment" element={
           <RequireAuth redirect="/login?redirect=/booking">
             <BookingPaymentPage />
           </RequireAuth>
         } />
-        <Route path="/booking/history"  element={
+        <Route path="/booking/history" element={
           <RequireAuth>
             <BookingHistoryPage />
           </RequireAuth>
@@ -112,7 +112,7 @@ export default function App() {
             </AdminLayout>
           </RequireAuth>
         } />
-       <Route path="/admin/customers" element={
+        <Route path="/admin/customers" element={
           <RequireAuth redirect="/login">
             <AdminLayout>
               <AdminCustomersPage />

@@ -70,9 +70,9 @@ const getColorByStatus = (status) => {
 export const fetchDailyCheckins = async (dateStr) => {
     try {
         const response = await apiClient.get(ENDPOINTS.DASHBOARD_GANTT, {
-            params: { 
-                startDate: dateStr, 
-                endDate: dateStr 
+            params: {
+                startDate: dateStr,
+                endDate: dateStr
             }
         });
 
@@ -102,7 +102,7 @@ export const fetchDailyCheckins = async (dateStr) => {
                     soPhong: roomInfo.soPhong || 'N/A',
                     loai: roomInfo.loai || 'N/A',
                     guestName: b.customerName,
-                    checkInTime: expectedCheckIn.toLocaleTimeString('vi-VN', { hour: '2-digit', minute:'2-digit' }),
+                    checkInTime: expectedCheckIn.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
                     status: currentStatus,
                     cccd: b.customerCccd || ''
                 };
@@ -118,7 +118,7 @@ export const submitCheckin = async (datPhongId, chiTietDatPhongId, guests) => {
             danhSachPhong: [
                 {
                     // Đảm bảo chiTietDatPhongId là giá trị chuỗi UUID hợp lệ
-                    chiTietDatPhongId: chiTietDatPhongId, 
+                    chiTietDatPhongId: chiTietDatPhongId,
                     khachLuuTrus: guests.map(g => ({
                         hoTen: g.fullName,
                         cccD_Passport: g.cccd,
@@ -127,7 +127,7 @@ export const submitCheckin = async (datPhongId, chiTietDatPhongId, guests) => {
                 }
             ]
         };
-        
+
         // Gọi API với datPhongId (Mã đặt phòng tổng)
         const response = await apiClient.post(`/api/bookings/${datPhongId}/check-in`, payload);
         return response.data;
@@ -158,9 +158,9 @@ export const splitInvoice = async (datPhongId, chiTietDatPhongId, leTanId) => {
 
 export const confirmCheckout = async (datPhongId, phuongThucTT, leTanId) => {
     const response = await apiClient.post(`/api/bookings/${datPhongId}/confirm-checkout`, null, {
-        params: { 
-            phuongThucTT: phuongThucTT, 
-            leTanId: leTanId 
+        params: {
+            phuongThucTT: phuongThucTT,
+            leTanId: leTanId
         }
     });
     return response.data;

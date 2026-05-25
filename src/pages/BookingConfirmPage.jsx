@@ -1,12 +1,11 @@
 
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { bookingService } from '../services/booking.service';
 import { profileService } from '../services/profile.service';
 import { getUserIdFromToken } from '../utils/jwt.util';
 
-const fmt  = (n) => n ? new Intl.NumberFormat('vi-VN').format(Math.round(n)) + ' ₫' : '0 ₫';
+const fmt = (n) => n ? new Intl.NumberFormat('vi-VN').format(Math.round(n)) + ' ₫' : '0 ₫';
 const fmtD = (s) => s ? new Date(s).toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
 // ─────────────────────────────────────────────────────────────────
@@ -17,20 +16,20 @@ const fmtD = (s) => s ? new Date(s).toLocaleDateString('vi-VN', { weekday: 'shor
 // ─────────────────────────────────────────────────────────────────
 
 export default function BookingConfirmPage() {
-  const navigate  = useNavigate();
-  const location  = useLocation();
-  const s         = location.state || {};
+  const navigate = useNavigate();
+  const location = useLocation();
+  const s = location.state || {};
   const { checkIn, checkOut, nights, selectedRooms = [], grandTotal = 0 } = s;
 
   const [customerProfile, setCustomerProfile] = useState(null);
-  const [profileLoading,  setProfileLoading]  = useState(true);
-  const [profileError,    setProfileError]    = useState('');
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileError, setProfileError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState('');
+  const [error, setError] = useState('');
 
   // Lấy khachHangId từ Token (Sử dụng 'roleId' - Claim RoleId chứa ID Khách hàng)
-  const token       = localStorage.getItem('token');
-  const khachHangId = getUserIdFromToken(token, 'roleId'); 
+  const token = localStorage.getItem('token');
+  const khachHangId = getUserIdFromToken(token, 'roleId');
 
   useEffect(() => {
     if (!khachHangId) {
@@ -60,11 +59,11 @@ export default function BookingConfirmPage() {
 
   const handleConfirm = async () => {
     if (!token) { navigate('/login?redirect=/booking'); return; }
-    
+
     // KIỂM TRA QUAN TRỌNG: Phải có khachHangId (RoleId) mới được phép tạo booking
-    if (!khachHangId) { 
-      setError('Lỗi định danh: Không tìm thấy mã khách hàng trong Token. Vui lòng đăng nhập lại.'); 
-      return; 
+    if (!khachHangId) {
+      setError('Lỗi định danh: Không tìm thấy mã khách hàng trong Token. Vui lòng đăng nhập lại.');
+      return;
     }
 
     setError(''); setLoading(true);
@@ -72,12 +71,12 @@ export default function BookingConfirmPage() {
       const payload = {
         // SỬA ĐỔI: Sử dụng khachHangId (RoleId) thay vì userId (Identity ID)
         // Điều này đảm bảo trùng khớp với dữ liệu đã dùng để GET Profile phía trên.
-        khachHangId: khachHangId, 
+        khachHangId: khachHangId,
         ngayNhanPhongDuKien: new Date(checkIn).toISOString(),
-        ngayTraPhongDuKien : new Date(checkOut).toISOString(),
+        ngayTraPhongDuKien: new Date(checkOut).toISOString(),
         roomDetails: selectedRooms.map(r => ({
-          phongId   : r.phongId,
-          giaThucTe : r.giaThucTe,
+          phongId: r.phongId,
+          giaThucTe: r.giaThucTe,
         })),
       };
 
@@ -107,7 +106,7 @@ export default function BookingConfirmPage() {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#f5f6f8', fontFamily: '"Segoe UI", system-ui, sans-serif' }}>
-      
+
       {/* Header & Steps */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -120,11 +119,11 @@ export default function BookingConfirmPage() {
                 <div className="flex items-center gap-1.5">
                   <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
                     style={{ background: i <= 1 ? '#00224f' : '#e5e7eb', color: i <= 1 ? '#fff' : '#9ca3af' }}>
-                    {i+1}
+                    {i + 1}
                   </div>
                   <span style={{ color: i <= 1 ? '#00224f' : '#9ca3af' }}>{label}</span>
                 </div>
-                {i < 2 && <div className="w-8 h-px" style={{ background: i < 1 ? '#00224f' : '#e5e7eb' }}/>}
+                {i < 2 && <div className="w-8 h-px" style={{ background: i < 1 ? '#00224f' : '#e5e7eb' }} />}
               </div>
             ))}
           </div>
@@ -162,18 +161,18 @@ export default function BookingConfirmPage() {
                 </div>
               ) : (
                 <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <ROField label="Họ và tên"        value={cp?.hoTen} />
-                  <ROField label="Email"            value={cp?.email} />
-                  <ROField label="Số điện thoại"   value={cp?.soDienThoai} />
+                  <ROField label="Họ và tên" value={cp?.hoTen} />
+                  <ROField label="Email" value={cp?.email} />
+                  <ROField label="Số điện thoại" value={cp?.soDienThoai} />
                   <ROField label="CCCD / Hộ chiếu" value={cp?.cccdPassport ?? cp?.cccD_Passport} />
-                  <ROField label="Quốc tịch"        value={cp?.quocTich} />
-                  <ROField label="Quê quán"         value={cp?.queQuan} />
+                  <ROField label="Quốc tịch" value={cp?.quocTich} />
+                  <ROField label="Quê quán" value={cp?.queQuan} />
                 </div>
               )}
             </div>
 
 
-              
+
 
             {/* Danh sách phòng */}
             <div className="bg-white border border-gray-200 shadow-sm rounded-sm overflow-hidden">
@@ -188,7 +187,7 @@ export default function BookingConfirmPage() {
                     {rooms.map((r, i) => (
                       <div key={i} className="flex items-center justify-between text-sm px-4 py-3 rounded-sm mb-2" style={{ background: '#f8f9fa', border: '1px solid #e5e7eb' }}>
                         <div>
-                          <span className="font-medium text-gray-700">Phòng {r.soPhong || `#${i+1}`}</span>
+                          <span className="font-medium text-gray-700">Phòng {r.soPhong || `#${i + 1}`}</span>
                           <span className="text-gray-400 ml-2">| Tầng {r.tang || '—'}</span>
                         </div>
                         <span className="font-bold text-gray-900">{fmt(r.giaThucTe)}</span>
@@ -233,7 +232,7 @@ export default function BookingConfirmPage() {
                   style={{ background: '#c9a84c' }}>
                   {loading ? 'Đang xử lý...' : 'Xác nhận & Thanh toán →'}
                 </button>
-                
+
                 <div className="mt-4 p-3 bg-amber-50 border border-amber-100 rounded-sm">
                   <p className="text-[11px] text-amber-700 leading-relaxed italic text-center">
                     Ghi chú: Bạn sẽ không thể sửa thông tin sau khi bấm xác nhận.
