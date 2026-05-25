@@ -110,12 +110,18 @@ function ICheck({ checked, indeterminate, onChange, size = 'md' }) {
 export default function AdminRolesPage() {
   // ── Dữ liệu ─────────────────────────────────────────────────────
   const [roles, setRoles] = useState([]);  // [{ id, tenVaiTro }]
-  const [tree, setTree] = useState([]);  // ChucNangTreeVM[] từ GET /permissions
+  const [tree, setTree] = useState([]);  // ChucNangTreeVM[] đã dedup theo giaTriQuyen
+
+  // Bảng ánh xạ: bất kỳ UUID (cũ hay mới) dạng lowercase → canonicalId gốc
+  const [permIdMap, setPermIdMap] = useState(new Map()); // Map<lowercaseUUID, canonicalId>
 
   // ── Selection ────────────────────────────────────────────────────
   const [selRole, setSelRole] = useState(null);
 
-  // Set<Guid> – chứa các QuyenId đang được tick cho role đang chọn
+  // Danh sách UUID quyền thô của vai trò đang chọn từ server (có thể có cả UUID cũ & mới)
+  const [rawRolePerms, setRawRolePerms] = useState([]);
+
+  // Set<canonicalId> – chứa các QuyenId đang được tick cho role đang chọn
   const [ticked, setTicked] = useState(new Set());
 
   // ── Loading / status ─────────────────────────────────────────────
@@ -133,35 +139,105 @@ export default function AdminRolesPage() {
   const [createErr, setCreateErr] = useState('');
 
   // ── Load roles ───────────────────────────────────────────────────
+  // const loadRoles = useCallback(async () => {
+  //   setRolesLoading(true);
+  //   try {
+  //     const { data } = await adminSystemService.getRoles();
+  //     const list = Array.isArray(data) ? data : [];
+  //     setRoles(list);
+  //     // Tự chọn role đầu tiên nếu chưa có
+  //     if (list.length > 0) setSelRole(r => r ?? list[0]);
+  //   } catch (e) {
+  //     console.error('[Roles] loadRoles:', e);
+  //   } finally {
+  //     setRolesLoading(false);
+  //   }
+  // }, []);
   const loadRoles = useCallback(async () => {
     setRolesLoading(true);
     try {
       const { data } = await adminSystemService.getRoles();
       const list = Array.isArray(data) ? data : [];
-      setRoles(list);
-      // Tự chọn role đầu tiên nếu chưa có
-      if (list.length > 0) setSelRole(r => r ?? list[0]);
+
+      // KHỬ TRÙNG LẶP: Chỉ giữ lại role xuất hiện ĐẦU TIÊN theo tenVaiTro
+      const uniqueRoles = list.reduce((acc, current) => {
+        // Nếu acc chưa có role này thì mới push vào
+        if (!acc.some(r => r.tenVaiTro === current.tenVaiTro)) {
+          acc.push(current);
+        }
+        return acc;
+      }, []);
+
+      setRoles(uniqueRoles);
+
+      // Tự chọn role đầu tiên trong danh sách đã lọc nếu chưa có
+      if (uniqueRoles.length > 0) setSelRole(r => r ?? uniqueRoles[0]);
     } catch (e) {
       console.error('[Roles] loadRoles:', e);
     } finally {
       setRolesLoading(false);
     }
   }, []);
-
   // ── Load cây permission (ChucNangTreeVM[]) ───────────────────────
   const loadTree = useCallback(async () => {
     setTreeLoading(true);
     try {
       const { data } = await adminSystemService.getPermissions();
       // Đảm bảo đúng shape: [{ id, tenChucNang, quyens: [{id, tenQuyen, giaTriQuyen}] }]
-      const list = Array.isArray(data) ? data : [];
-      setTree(list);
+      const rawList = Array.isArray(data) ? data : [];
+
+      const anyIdToCanonicalId = new Map(); // bất kỳ UUID nào dạng lowercase → canonicalId gốc
+      const globalSeenActions = new Map(); // giaTriQuyen → QuyenItem (canonical)
+
+      // 1. Quét toàn bộ quyền để xác định canonicalId cho từng giaTriQuyen và build bảng ánh xạ
+      rawList.forEach(cn => {
+        if (Array.isArray(cn.quyens)) {
+          cn.quyens.forEach(q => {
+            const key = q.giaTriQuyen;
+            const qIdLower = q.id.toLowerCase();
+            if (!globalSeenActions.has(key)) {
+              globalSeenActions.set(key, q);
+              anyIdToCanonicalId.set(qIdLower, q.id); // canonical -> chính nó
+            } else {
+              const canonicalQuyen = globalSeenActions.get(key);
+              anyIdToCanonicalId.set(qIdLower, canonicalQuyen.id); // map duplicate -> canonical
+            }
+          });
+        }
+      });
+
+      // 2. Lọc danh sách quyền chỉ giữ lại các canonicalId tương ứng
+      const dedupedList = rawList.map(cn => {
+        const canonicalQuyens = [];
+        if (Array.isArray(cn.quyens)) {
+          cn.quyens.forEach(q => {
+            const key = q.giaTriQuyen;
+            if (globalSeenActions.get(key)?.id === q.id) {
+              canonicalQuyens.push(q);
+            }
+          });
+        }
+        return { ...cn, quyens: canonicalQuyens };
+      });
+
+      // 3. Lọc bỏ các nhóm chức năng trùng tên hoặc rỗng
+      const seenModules = new Set();
+      const finalList = dedupedList.filter(cn => {
+        if (seenModules.has(cn.tenChucNang)) return false;
+        if (cn.quyens.length === 0) return false;
+        seenModules.add(cn.tenChucNang);
+        return true;
+      });
+
+      setTree(finalList);
+      setPermIdMap(anyIdToCanonicalId);
     } catch (e) {
       console.error('[Roles] loadTree:', e);
     } finally {
       setTreeLoading(false);
     }
   }, []);
+
 
   // ── Load QuyenId[] của role đang chọn ───────────────────────────
   // Backend trả Guid[] thuần – KHÔNG phải object!
@@ -172,14 +248,30 @@ export default function AdminRolesPage() {
       const { data } = await adminSystemService.getRolePermissions(roleId);
       // data = ["uuid1", "uuid2", ...] (Guid string[])
       const arr = Array.isArray(data) ? data : [];
-      setTicked(new Set(arr));
+      setRawRolePerms(arr);
     } catch (e) {
       console.error('[Roles] loadRolePerms:', e);
-      setTicked(new Set());
+      setRawRolePerms([]);
     } finally {
       setMatLoading(false);
     }
   }, []);
+
+  // Cập nhật và resolve danh sách quyền đã tick khi rawRolePerms hoặc permIdMap thay đổi
+  // Lọc bỏ các UUID không hợp lệ/không tồn tại trong tree hiện tại để tổng số quyền được gán chính xác
+  useEffect(() => {
+    const resolved = new Set();
+    rawRolePerms.forEach(id => {
+      if (typeof id === 'string') {
+        const idLower = id.toLowerCase();
+        const canonicalId = permIdMap.get(idLower);
+        if (canonicalId) {
+          resolved.add(canonicalId);
+        }
+      }
+    });
+    setTicked(resolved);
+  }, [rawRolePerms, permIdMap]);
 
   // Khởi tạo
   useEffect(() => { loadRoles(); loadTree(); }, [loadRoles, loadTree]);
@@ -227,12 +319,14 @@ export default function AdminRolesPage() {
     setStatus({ msg: '', ok: true });
     try {
       // AssignRolePermissionVM: { vaiTroId: Guid, quyenIds: Guid[] }
+      // ticked chứa canonicalId nên gửi thẳng lên backend
       await adminSystemService.assignRolePermissions({
         vaiTroId: selRole.id,
         quyenIds: Array.from(ticked),
       });
       setStatus({ msg: '✓ Lưu phân quyền thành công!', ok: true });
       setDirty(false);
+      setRawRolePerms(Array.from(ticked));
       setTimeout(() => setStatus({ msg: '', ok: true }), 4000);
     } catch (e) {
       const msg = e?.response?.data?.message ?? e?.response?.data ?? 'Lỗi không xác định';

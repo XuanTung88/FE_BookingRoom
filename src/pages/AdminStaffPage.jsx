@@ -18,7 +18,8 @@ const rStyle = (n) => ROLE_COLORS[n] ?? { bg: '#f3f4f6', color: '#374151' };
 const getRoleNames = (u) => {
   const arr = u?.roles ?? u?.vaiTros ?? [];
   if (!Array.isArray(arr)) return [];
-  return arr.map(r => (typeof r === 'string' ? r : r.tenVaiTro ?? r.name ?? '')).filter(Boolean);
+  // return arr.map(r => (typeof r === 'string' ? r : r.tenVaiTro ?? r.name ?? '')).filter(Boolean);
+  return [...new Set(arr.map(r => (typeof r === 'string' ? r : r.tenVaiTro ?? r.name ?? '')).filter(Boolean))];
 };
 
 const isStaff = (u) => {
@@ -198,8 +199,12 @@ export default function AdminStaffPage() {
   };
 
   // Chỉ hiện role nhân sự trong dropdown
-  const staffRoleOpts = allRoles.filter(r => STAFF_ROLES.includes(r.tenVaiTro ?? r.name ?? ''));
-
+  // const staffRoleOpts = allRoles.filter(r => STAFF_ROLES.includes(r.tenVaiTro ?? r.name ?? ''));
+  // Chỉ hiện role nhân sự trong dropdown và khử trùng lặp theo tên
+  const rawStaffRoles = allRoles.filter(r => STAFF_ROLES.includes(r.tenVaiTro ?? r.name ?? ''));
+  const staffRoleOpts = Array.from(
+    new Map(rawStaffRoles.map(r => [r.tenVaiTro ?? r.name, r])).values()
+  );
   // Normalize userRoles để hiển thị
   const dispRoles = userRoles.length > 0
     ? userRoles.map(r => ({ id: r.id ?? '', name: r.tenVaiTro ?? r.name ?? String(r) }))

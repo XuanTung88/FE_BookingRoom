@@ -16,7 +16,7 @@
  *   { hoTen, soDienThoai, cccdPassport, quocTich, ngaySinh (date-time), gioiTinh, queQuan }
  *   Note: field là "cccdPassport" (camelCase), KHÔNG phải "cccD_Passport"
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { adminSystemService } from '../services/admin.system.service';
 import apiClient from '../services/api.client';
 import { ENDPOINTS } from '../config/api.config';
@@ -58,11 +58,10 @@ const ROOM_IMGS = [
 ];
 
 export default function AdminCustomersPage() {
-  const [users, setUsers] = useState([]);
+  const [allCustomers, setAllCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
   const PAGE = 10;
 
   // Slide-over
@@ -85,18 +84,50 @@ export default function AdminCustomersPage() {
     setLoading(true);
     try {
       const { data } = await adminSystemService.getUsers({
-        keyword: search || undefined, pageIndex: page, pageSize: PAGE,
+        pageIndex: 1,
+        pageSize: 1000, // Lấy toàn bộ để phân trang và lọc client-side
       });
       const items = Array.isArray(data) ? data : (data?.items ?? data?.data ?? []);
       // Lọc chỉ Customer
       const customers = items.filter(isCustomer);
-      setUsers(customers);
-      setTotal(data?.totalCount ?? data?.total ?? items.length);
-    } catch (e) { console.error('[Customers] getUsers:', e); setUsers([]); }
-    finally { setLoading(false); }
-  }, [search, page]);
+      setAllCustomers(customers);
+    } catch (e) {
+      console.error('[Customers] getUsers:', e);
+      setAllCustomers([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Tìm kiếm client-side
+  const filteredCustomers = useMemo(() => {
+    if (!search.trim()) return allCustomers;
+    const q = search.toLowerCase();
+    return allCustomers.filter(u =>
+      (u.hoTen ?? '').toLowerCase().includes(q) ||
+      (u.tenDangNhap ?? '').toLowerCase().includes(q) ||
+      (u.email ?? '').toLowerCase().includes(q) ||
+      (u.soDienThoai ?? '').toLowerCase().includes(q)
+    );
+  }, [allCustomers, search]);
+
+  // Phân trang client-side
+  const total = filteredCustomers.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE));
+  const safePage = Math.min(page, totalPages);
+  const pageItems = filteredCustomers.slice((safePage - 1) * PAGE, safePage * PAGE);
+
+  // Reset về trang 1 khi tìm kiếm thay đổi
+  useEffect(() => { setPage(1); }, [search]);
+
+  // Thống kê khách hàng
+  const stats = useMemo(() => ({
+    total: allCustomers.length,
+    completed: allCustomers.filter(u => u.isProfileCompleted).length,
+    pending: allCustomers.filter(u => !u.isProfileCompleted).length,
+  }), [allCustomers]);
 
   const openSlide = async (user) => {
     setSelected(user);
@@ -154,7 +185,6 @@ export default function AdminCustomersPage() {
     } catch (e) { alert(e.response?.data?.message ?? 'Xóa tài khoản thất bại.'); }
   };
 
-  const totalPages = Math.max(1, Math.ceil(total / PAGE));
   const p = profile;
 
   return (
@@ -164,13 +194,13 @@ export default function AdminCustomersPage() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 shrink-0">
         {[
-          { label: 'Tổng khách hàng', value: total, color: '#1d4ed8' },
-          { label: 'Có hồ sơ', value: users.filter(u => u.isProfileCompleted).length, color: '#065f46' },
-          { label: 'Chờ xác minh', value: users.filter(u => !u.isProfileCompleted).length, color: '#854d0e' },
+          { label: 'Tổng khách hàng', value: stats.total, color: '#1d4ed8' },
+          { label: 'Có hồ sơ', value: stats.completed, color: '#065f46' },
+          { label: 'Chờ xác minh', value: stats.pending, color: '#854d0e' },
         ].map((s, i) => (
           <div key={i} className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
             <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">{s.label}</p>
-            <p className="text-3xl font-black" style={{ color: s.color }}>{s.value}</p>
+            <p className="text-3xl font-black" style={{ color: s.color }}>{loading ? '—' : s.value}</p>
           </div>
         ))}
       </div>
@@ -185,7 +215,7 @@ export default function AdminCustomersPage() {
           <div className="relative">
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" /></svg>
             <input type="text" placeholder="Tìm theo tên, email..." value={search}
-              onChange={e => { setSearch(e.target.value); setPage(1); }}
+              onChange={e => setSearch(e.target.value)}
               className="pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-blue-400 w-56" />
           </div>
         </div>
@@ -199,12 +229,12 @@ export default function AdminCustomersPage() {
             </thead>
             <tbody>
               {loading ? <tr><td colSpan={5} className="py-20 text-center text-gray-400">Đang tải...</td></tr>
-                : users.length === 0 ? (
+                : pageItems.length === 0 ? (
                   <tr><td colSpan={5} className="py-20 text-center">
                     <div className="text-4xl mb-3">👤</div>
                     <p className="text-gray-400">Không có khách hàng nào.</p>
                   </td></tr>
-                ) : users.map(u => (
+                ) : pageItems.map(u => (
                   <tr key={u.id} onClick={() => openSlide(u)}
                     className="border-b border-gray-50 hover:bg-gray-50/70 transition cursor-pointer">
                     <td className="px-5 py-4">
@@ -251,14 +281,16 @@ export default function AdminCustomersPage() {
 
         {!loading && (
           <div className="flex items-center justify-between px-6 py-3 border-t border-gray-100 bg-gray-50 shrink-0 text-xs text-gray-500">
-            <span>Hiển thị {users.length} / {total} khách hàng</span>
+            <span>
+              Hiển thị {pageItems.length > 0 ? (safePage - 1) * PAGE + 1 : 0}–{(safePage - 1) * PAGE + pageItems.length} / {total} khách hàng
+            </span>
             <div className="flex items-center gap-1">
-              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1.5 rounded border border-gray-200 hover:bg-white disabled:opacity-40 font-medium">Trước</button>
-              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map(n => (
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1} className="px-3 py-1.5 rounded border border-gray-200 hover:bg-white disabled:opacity-40 font-medium">Trước</button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
                 <button key={n} onClick={() => setPage(n)}
-                  className={`px-3 py-1.5 rounded border font-medium ${page === n ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-200 hover:bg-white'}`}>{n}</button>
+                  className={`px-3 py-1.5 rounded border font-medium ${safePage === n ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-200 hover:bg-white'}`}>{n}</button>
               ))}
-              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="px-3 py-1.5 rounded border border-gray-200 hover:bg-white disabled:opacity-40 font-medium">Tiếp</button>
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages} className="px-3 py-1.5 rounded border border-gray-200 hover:bg-white disabled:opacity-40 font-medium">Tiếp</button>
             </div>
           </div>
         )}
