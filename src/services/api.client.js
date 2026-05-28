@@ -21,7 +21,13 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       clearAuth();
-      window.location.href = '/login';
+      const isAuthRequest = error.config?.url?.includes('/api/admin/Auth/login') ||
+                            error.config?.url?.includes('/api/admin/Auth/register');
+      const isAuthPage = window.location.pathname === '/login' || 
+                         window.location.pathname === '/register';
+      if (!isAuthRequest && !isAuthPage) {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

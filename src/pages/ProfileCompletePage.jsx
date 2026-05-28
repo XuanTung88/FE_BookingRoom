@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { setStorageItem } from '../utils/storage.util';
 import { getUserFromToken } from '../utils/jwt.util';
 import apiClient from '../services/api.client';
+import { getErrorMessage } from '../utils/error.util';
 
 export default function ProfileCompletePage() {
   const navigate = useNavigate();
@@ -26,7 +27,7 @@ export default function ProfileCompletePage() {
       alert('Cập nhật hồ sơ thành công!');
       navigate('/booking'); // Quay lại luồng đặt phòng
     } catch (err) {
-      alert('Lỗi cập nhật: ' + (err.response?.data?.message || 'Vui lòng thử lại'));
+      alert('Lỗi cập nhật: ' + getErrorMessage(err, 'Vui lòng thử lại'));
     } finally { setLoading(false); }
   };
 

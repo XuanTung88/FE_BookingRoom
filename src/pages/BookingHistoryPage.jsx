@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { profileService } from '../services/profile.service';
 import { getStorageItem, clearAuth } from '../utils/storage.util';
 import { getUserIdFromToken, getRoleFromToken, isAdminRole } from '../utils/jwt.util';
+import { getErrorMessage } from '../utils/error.util';
 
 const fmt  = (n) => n ? new Intl.NumberFormat('vi-VN').format(Math.round(n)) + ' ₫' : '—';
 const fmtD = (s) => {
@@ -96,7 +97,7 @@ export default function BookingHistoryPage() {
       setSaveMsg('✓ Cập nhật thành công!');
       setTimeout(() => setSaveMsg(''), 3000);
     } catch (err) {
-      setSaveMsg(err.response?.data?.message ?? 'Lưu thất bại. Vui lòng thử lại.');
+      setSaveMsg(getErrorMessage(err, 'Lưu thất bại. Vui lòng thử lại.'));
     } finally { setSaveLoading(false); }
   };
 

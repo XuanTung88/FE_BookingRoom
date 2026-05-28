@@ -6,6 +6,7 @@ import { profileService } from '../services/profile.service';
 import { decodeJWT, getUserFromToken, isAdminRole } from '../utils/jwt.util';
 import { setStorageItem } from '../utils/storage.util';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from '../utils/error.util';
 
 // ─── AuthPage ─────────────────────────────────────────────────────
 export default function AuthPage() {
@@ -70,10 +71,7 @@ export default function AuthPage() {
         navigate(redirect);
       }
     } catch (err) {
-      const msg = err.response?.data?.message
-        ?? (Array.isArray(err.response?.data) ? err.response.data.join(' ') : null)
-        ?? err.response?.data
-        ?? 'Sai email hoặc mật khẩu.';
+      const msg = getErrorMessage(err, 'Sai email hoặc mật khẩu.');
       if (!isAutoLogin) {
         setLoginError(msg);
         toast.error(msg);
@@ -105,15 +103,7 @@ export default function AuthPage() {
       setTempCreds({ email: regData.email, password: regData.password });
 
     } catch (err) {
-      const errors = err.response?.data?.errors;
-      let msg = '';
-      if (errors) {
-        msg = Object.values(errors).flat().join('\n');
-      } else {
-        msg = err.response?.data?.message ??
-          (Array.isArray(err.response?.data) ? err.response.data.join('\n') : null) ??
-          'Đã xảy ra lỗi khi đăng ký.';
-      }
+      const msg = getErrorMessage(err, 'Đã xảy ra lỗi khi đăng ký.');
       setRegError(msg);
       toast.error(msg);
     } finally {
@@ -152,9 +142,7 @@ export default function AuthPage() {
       setProfileDone(true);
 
     } catch (err) {
-      setProfileError(
-        err.response?.data?.message ?? err.response?.data ?? 'Lưu thông tin thất bại.'
-      );
+      setProfileError(getErrorMessage(err, 'Lưu thông tin thất bại.'));
     } finally {
       setProfileLoading(false);
     }

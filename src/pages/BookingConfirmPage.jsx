@@ -4,6 +4,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { bookingService } from '../services/booking.service';
 import { profileService } from '../services/profile.service';
 import { getUserIdFromToken } from '../utils/jwt.util';
+import { getErrorMessage } from '../utils/error.util';
 
 const fmt = (n) => n ? new Intl.NumberFormat('vi-VN').format(Math.round(n)) + ' ₫' : '0 ₫';
 const fmtD = (s) => s ? new Date(s).toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }) : '—';
@@ -90,7 +91,7 @@ export default function BookingConfirmPage() {
       if (err.response?.status === 403) {
         setError('Tài khoản của bạn chưa được cấp quyền đặt phòng. Hãy đảm bảo bạn đã hoàn thiện hồ sơ.');
       } else {
-        setError(err.response?.data?.message ?? err.response?.data ?? 'Hệ thống gặp lỗi khi tạo đơn đặt phòng.');
+        setError(getErrorMessage(err, 'Hệ thống gặp lỗi khi tạo đơn đặt phòng.'));
       }
     } finally { setLoading(false); }
   };
