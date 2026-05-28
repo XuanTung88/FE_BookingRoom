@@ -5,10 +5,10 @@ export default function CheckinListModal({ isOpen, onClose, checkins, rooms, onP
         <>
             {/* Lớp phủ đen làm mờ nền */}
             <div className="fixed inset-0 bg-black/40 z-[100]" onClick={onClose}></div>
-            
+
             {/* Modal panel chính */}
             <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-xl w-[650px] max-h-[85vh] overflow-hidden z-[101] flex flex-col">
-                
+
                 {/* Header modal */}
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
                     <div className="flex items-center gap-3">
@@ -52,7 +52,7 @@ export default function CheckinListModal({ isOpen, onClose, checkins, rooms, onP
                                                 <td className="px-5 py-4 text-gray-800 font-medium">{item.guestName}</td>
                                                 <td className="px-5 py-4 text-center">
                                                     {/* Nhấn vào đây sẽ gọi hàm xử lý mở Drawer */}
-                                                    <button 
+                                                    <button
                                                         onClick={() => onProcessCheckin(item)}
                                                         className="text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition shadow"
                                                     >

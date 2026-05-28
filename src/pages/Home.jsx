@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getStorageItem, clearAuth } from '../utils/storage.util';
 import { getRoleFromToken, isAdminRole } from '../utils/jwt.util';
+import PhongView from './view/PhongView';
+import ServiceView from './view/ServiceView';
+import EquipmentView from './view/EquipmentView';
 
 export default function Home() {
     const navigate = useNavigate();
@@ -32,43 +35,7 @@ export default function Home() {
         "https://images.unsplash.com/photo-1478827536114-da961b7f86d2?auto=format&fit=crop&w=1920&q=80"  // View thành phố đêm
     ];
 
-    const destinations = [
-        {
-            name: "Vịnh Hạ Long",
-            img: "https://images.unsplash.com/photo-1528127269322-539801943592?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-            span: "col-span-12 md:col-span-8 row-span-2"
-        },
-        {
-            name: "Sapa",
-            img: "https://tse1.mm.bing.net/th/id/OIP.rNJZKOuC3WVUgSxSEP16BgHaEK?rs=1&pid=ImgDetMain&o=7&rm=3",
-            span: "col-span-6 md:col-span-4"
-        },
-        {
-            name: "Hội An",
-            img: "https://tse2.mm.bing.net/th/id/OIP.huPBEEdtrHlfD4HdtkO00QHaE7?rs=1&pid=ImgDetMain&o=7&rm=3",
-            span: "col-span-6 md:col-span-4"
-        },
-        {
-            name: "Phú Quốc",
-            img: "https://tse2.mm.bing.net/th/id/OIP.MjQAAJKlLLdOlutUnQ2-3gHaDX?rs=1&pid=ImgDetMain&o=7&rm=3",
-            span: "col-span-12 md:col-span-4"
-        },
-        {
-            name: "Đà Nẵng",
-            img: "https://th.bing.com/th/id/OIP.9q1PYB0mUNOnhSt3HUSKwwHaE8?w=277&h=185&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3",
-            span: "col-span-6 md:col-span-4"
-        },
-        {
-            name: "Ninh Bình",
-            img: "https://tse3.mm.bing.net/th/id/OIP.h11MmmxQwGY1DgZ7DqSEWAHaE7?rs=1&pid=ImgDetMain&o=7&rm=3",
-            span: "col-span-6 md:col-span-4"
-        },
-        {
-            name: "Đà Lạt",
-            img: "https://www.agoda.com/wp-content/uploads/2024/09/da-lat-vietnam-featured.jpg",
-            span: "col-span-12 md:col-span-12 h-64"
-        },
-    ];
+
     useEffect(() => {
         const timer = setInterval(() => setCurrentSlide(prev => prev === slides.length - 1 ? 0 : prev + 1), 3000);
         return () => clearInterval(timer);
@@ -94,6 +61,20 @@ export default function Home() {
         // Điều hướng kèm Query Params
         navigate(`/booking?checkIn=${checkInDate}&checkOut=${checkOutDate}`);
     };
+
+    const handleScrollToSection = (id) => {
+        const element = document.getElementById(id);
+        if (element) {
+            const headerOffset = 80;
+            const elementPosition = element.getBoundingClientRect().top;
+            const offsetPosition = elementPosition + window.scrollY - headerOffset;
+            window.scrollTo({
+                top: offsetPosition,
+                behavior: 'smooth'
+            });
+        }
+    };
+
     return (
         <div className="relative min-h-screen bg-gray-50 font-sans">
 
@@ -105,11 +86,13 @@ export default function Home() {
                             Hotel<span className={isScrolled ? 'text-gray-800' : 'text-blue-400'}>MoonLight</span>
                         </Link>
                         <nav className={`hidden md:flex gap-6 font-medium ${isScrolled ? 'text-gray-600' : 'text-gray-100'}`}>
-                            <Link to="/" className="hover:text-blue-400 transition">Trang chủ</Link>
-                            <Link to="/booking" className="hover:text-blue-400 transition">Phòng & Suite</Link>
-                            <Link to="/services" className="hover:text-blue-400 transition">Dịch vụ</Link>
-                            <Link to="/blog" className="hover:text-blue-400 transition">Blog Du lịch</Link>
-                            <Link to="/contact" className="hover:text-blue-400 transition">Liên hệ</Link>
+                            <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="hover:text-blue-400 transition cursor-pointer bg-transparent border-none font-medium">Trang chủ</button>
+                            <button type="button" onClick={() => handleScrollToSection('about')} className="hover:text-blue-400 transition cursor-pointer bg-transparent border-none font-medium">Giới thiệu</button>
+                            <button type="button" onClick={() => handleScrollToSection('rooms')} className="hover:text-blue-400 transition cursor-pointer bg-transparent border-none font-medium">Phòng nghỉ</button>
+                            <button type="button" onClick={() => handleScrollToSection('dining')} className="hover:text-blue-400 transition cursor-pointer bg-transparent border-none font-medium">Ẩm thực</button>
+                            <button type="button" onClick={() => handleScrollToSection('events')} className="hover:text-blue-400 transition cursor-pointer bg-transparent border-none font-medium">Sự kiện</button>
+                            <button type="button" onClick={() => handleScrollToSection('services')} className="hover:text-blue-400 transition cursor-pointer bg-transparent border-none font-medium">Dịch vụ & Tiện nghi</button>
+                            <button type="button" onClick={() => handleScrollToSection('location')} className="hover:text-blue-400 transition cursor-pointer bg-transparent border-none font-medium">Vị trí</button>
                         </nav>
                     </div>
 
@@ -122,8 +105,11 @@ export default function Home() {
                         ) : (
                             <div className="relative">
                                 <button onClick={() => setShowUserMenu(!showUserMenu)} className="flex items-center gap-2 bg-white/20 backdrop-blur-md border border-white/30 px-4 py-2 rounded-full text-white hover:bg-white/30 transition shadow-lg" style={{ color: isScrolled ? '#1f2937' : 'white', borderColor: isScrolled ? '#e5e7eb' : '' }}>
-                                    <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center text-sm font-bold text-white">
-                                        {user?.hoTen?.charAt(0) || 'U'}
+                                    <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center text-white shrink-0">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                            <circle cx="12" cy="7" r="4" />
+                                        </svg>
                                     </div>
                                     <span className="font-medium max-w-[100px] truncate">
                                         {user?.hoTen || 'Tài khoản'}
@@ -221,197 +207,264 @@ export default function Home() {
                 </div>
             </div>
 
-            {/* Giới thiệu (About Us) */}
-            <div className="py-20 bg-white">
+            {/* 1. Giới thiệu The MoonLight Da Nang */}
+            <div id="about" className="py-24 bg-white relative overflow-hidden">
                 <div className="container mx-auto px-6">
-                    <div className="flex flex-col lg:flex-row items-center gap-12">
+                    <div className="flex flex-col lg:flex-row items-center gap-16">
                         {/* Cột văn bản */}
-                        <div className="lg:w-1/2">
-                            <h2 className="text-4xl font-bold text-gray-900 mb-6">Về chúng tôi</h2>
-                            <p className="text-gray-600 text-lg leading-relaxed mb-6">
-                                Sở hữu vị trí độc nhất trên con đường ven biển xinh đẹp của thành phố Đà Nẵng,
-                                <strong className="font-semibold"> Hotel MoonLight</strong> có tầm nhìn trực diện hướng ra bãi biển Mỹ Khê –
-                                một trong những bãi biển quyến rũ nhất hành tinh và Công viên Biển Đông nổi tiếng.
-                                Khách sạn 19 tầng bao gồm 250 phòng lưu trú với thiết kế hiện đại, tiện nghi sẽ là điểm đến lý tưởng cho kỳ nghỉ dưỡng của bạn.
+                        <div className="lg:w-1/2 space-y-6">
+                            <span className="text-sm font-extrabold uppercase tracking-widest text-[#c9a84c] block">
+                                CHÀO MỪNG ĐẾN VỚI THE MoonLight DA NANG
+                            </span>
+                            <h2 className="text-4xl md:text-5xl font-serif font-bold text-[#00224f] leading-tight">
+                                Không Gian Nghỉ Dưỡng <br />
+                                <span className="text-[#c9a84c]">Đẳng Cấp 5 Sao</span> Bên Bờ Biển
+                            </h2>
+                            <p className="text-gray-600 text-lg leading-relaxed">
+                                Tọa lạc tại vị trí đắc địa trên cung đường biển quyến rũ nhất hành tinh Võ Nguyên Giáp, đối diện với bãi biển Mỹ Khê và Công viên Biển Đông thơ mộng,
+                                <strong className="font-bold text-gray-800"> The MoonLight Da Nang</strong> tự hào mang lại không gian lưu trú thượng lưu lý tưởng cho mọi chuyến đi của quý khách.
                             </p>
-                            <p className="text-gray-600 text-lg leading-relaxed mb-8">
-                                Tại <strong className="font-semibold">Hotel MoonLight</strong>, bạn sẽ được trải nghiệm một phong cách nghỉ dưỡng hoàn toàn mới mẻ
-                                thông qua không gian lưu trú trang nhã cùng trang thiết bị hiện đại, tận hưởng dịch vụ đa dạng.
+                            <p className="text-gray-600 text-lg leading-relaxed">
+                                Khách sạn cao 19 tầng gồm 250 phòng nghỉ hiện đại được trang bị đầy đủ tiện nghi tiêu chuẩn quốc tế, thiết kế tinh tế tối ưu hóa tầm nhìn hướng biển rộng mở.
+                                MoonLight là điểm đến tuyệt vời để bạn tận hưởng những phút giây thư giãn trọn vẹn, thưởng thức ẩm thực đỉnh cao và tổ chức sự kiện chuyên nghiệp.
                             </p>
-                            <Link to="/about" className="inline-block bg-blue-600 text-white px-8 py-3 rounded-full font-medium hover:bg-blue-700 transition shadow-lg">
-                                Tìm hiểu thêm
-                            </Link>
+                            <div className="pt-4">
+                                <Link to="/booking" className="inline-block bg-[#c9a84c] text-[#00224f] font-extrabold px-8 py-3.5 rounded-full hover:bg-[#b08f3b] transition duration-300 shadow-xl shadow-amber-500/10 uppercase tracking-wider text-sm">
+                                    Khám phá phòng ngay
+                                </Link>
+                            </div>
                         </div>
                         {/* Cột hình ảnh */}
-                        <div className="lg:w-1/2 grid grid-cols-2 gap-4">
-                            <img src="https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=800&q=80" alt="Phòng khách sạn" className="rounded-xl shadow-lg w-full h-64 object-cover" />
-                            <img src="https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=800&q=80" alt="Hồ bơi" className="rounded-xl shadow-lg w-full h-64 object-cover" />
-                            <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80" alt="Sảnh" className="rounded-xl shadow-lg w-full h-64 object-cover col-span-2" />
+                        <div className="lg:w-1/2 grid grid-cols-12 gap-4 relative">
+                            {/* Decorative Frame */}
+                            <div className="absolute -inset-4 border border-gray-100 rounded-3xl -z-10 pointer-events-none"></div>
+
+                            <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80" alt="Lobby Nalod" className="rounded-2xl shadow-xl w-full h-80 object-cover col-span-8 transform hover:scale-105 transition duration-500" />
+                            <img src="https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=800&q=80" alt="Hồ bơi vô cực" className="rounded-2xl shadow-xl w-full h-48 object-cover col-span-4 self-end transform hover:scale-105 transition duration-500" />
+                            <img src="https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=800&q=80" alt="Nhà hàng Nalod" className="rounded-2xl shadow-xl w-full h-48 object-cover col-span-4 transform hover:scale-105 transition duration-500" />
+                            <img src="https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=800&q=80" alt="Phòng ngủ sang trọng" className="rounded-2xl shadow-xl w-full h-48 object-cover col-span-8 transform hover:scale-105 transition duration-500" />
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Hệ thống phòng (Room Types) */}
-            <div className="py-20 bg-gray-50">
-                <div className="container mx-auto px-6">
-                    <div className="text-center mb-12">
-                        <h2 className="text-4xl font-bold text-gray-900 mb-4">Hệ thống phòng</h2>
-                        <p className="text-gray-500 max-w-2xl mx-auto">Khám phá các hạng phòng được thiết kế tinh tế, kết hợp hài hòa giữa nét kiến trúc hiện đại và tiện nghi đẳng cấp quốc tế.</p>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {[
-                            { name: "Premier Ocean Room", area: "32m²", guests: "2 người lớn", img: "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=800&q=80", price: "1.500.000đ" },
-                            { name: "Premier City Room", area: "37m²", guests: "2 người lớn", img: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80", price: "1.200.000đ" },
-                            { name: "Ocean Suite", area: "58m²", guests: "2 người lớn", img: "https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=800&q=80", price: "3.200.000đ" },
-                            { name: "President Suite", area: "90m²", guests: "2 người lớn", img: "https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=800&q=80", price: "5.500.000đ" },
-                        ].map((room, idx) => (
-                            <div key={idx} className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition group">
-                                <div className="relative h-56 overflow-hidden">
-                                    <img src={room.img} alt={room.name} className="w-full h-full object-cover group-hover:scale-110 transition duration-700" />
-                                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-sm font-bold text-gray-800">Từ {room.price}/đêm</div>
-                                </div>
-                                <div className="p-5">
-                                    <h3 className="text-xl font-bold text-gray-900 mb-1">{room.name}</h3>
-                                    <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
-                                        <span>📏 {room.area}</span>
-                                        <span>👤 {room.guests}</span>
-                                    </div>
-                                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">Tận hưởng trải nghiệm lưu trú đẳng cấp và khác biệt với tầm nhìn tuyệt đẹp.</p>
-                                    <Link to="/rooms" className="text-blue-600 font-medium hover:text-blue-800 transition flex items-center gap-1">
-                                        Xem chi tiết →
-                                    </Link>
-                                </div>
-                            </div>
-                        ))}
+            {/* 2. Những con số biết nói (Nalod in Numbers) */}
+            <div className="py-16 bg-[#00224f] text-white relative">
+                <div className="absolute inset-0 opacity-10 bg-cover bg-center" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1920&q=80')" }}></div>
+                <div className="container mx-auto px-6 relative z-10">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
+                        <div className="space-y-2 p-4 border-r border-white/10 last:border-0">
+                            <span className="text-4xl md:text-5xl font-serif font-black text-[#c9a84c] block">5 SAO</span>
+                            <span className="text-sm md:text-base font-bold text-gray-300 uppercase tracking-wide">Tiêu chuẩn quốc tế</span>
+                        </div>
+                        <div className="space-y-2 p-4 border-r border-white/10 last:border-0">
+                            <span className="text-4xl md:text-5xl font-serif font-black text-[#c9a84c] block">250+</span>
+                            <span className="text-sm md:text-base font-bold text-gray-300 uppercase tracking-wide">Phòng nghỉ hiện đại</span>
+                        </div>
+                        <div className="space-y-2 p-4 border-r border-white/10 last:border-0">
+                            <span className="text-4xl md:text-5xl font-serif font-black text-[#c9a84c] block">10+</span>
+                            <span className="text-sm md:text-base font-bold text-gray-300 uppercase tracking-wide">Phòng họp & Sảnh tiệc</span>
+                        </div>
+                        <div className="space-y-2 p-4 last:border-0">
+                            <span className="text-4xl md:text-5xl font-serif font-black text-[#c9a84c] block">300+</span>
+                            <span className="text-sm md:text-base font-bold text-gray-300 uppercase tracking-wide">Nhân sự tận tâm</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-
-            {/* KHÁM PHÁ ĐIỂM ĐẾN */}
-            <div className="py-20 bg-gray-50">
+            {/* 3. Hệ thống phòng nghỉ (PhongView) */}
+            <div id="rooms" className="py-24 bg-[#f8f9fa]">
                 <div className="container mx-auto px-6">
-                    <div className="mb-12">
-                        <h2 className="text-3xl font-bold text-gray-900 mb-2">Khám phá Việt Nam</h2>
-                        <p className="text-gray-500">Những điểm đến phổ biến nhất do du khách Hotel Moonlight bình chọn</p>
+                    <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
+                        <span className="text-sm font-extrabold uppercase tracking-widest text-[#c9a84c] block">KHÔNG GIAN LƯU TRÚ</span>
+                        <h2 className="text-4xl font-serif font-bold text-[#00224f]">Hệ Thống Phòng Nghỉ Hạng Sang</h2>
+                        <div className="w-16 h-1 bg-[#c9a84c] mx-auto my-4"></div>
+                        <p className="text-gray-500">Khám phá nét kiến trúc phóng khoáng, tầm nhìn biển tuyệt đẹp cùng không gian sống lý tưởng kết hợp hoàn hảo giữa công việc và giải trí.</p>
+                    </div>
+                    <PhongView />
+                </div>
+            </div>
+
+            {/* 4. Ẩm thực đặc sắc (Dining & Culinary) */}
+            <div id="dining" className="py-24 bg-white">
+                <div className="container mx-auto px-6">
+                    <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
+                        <span className="text-sm font-extrabold uppercase tracking-widest text-[#c9a84c] block">TINH HOA ẨM THỰC</span>
+                        <h2 className="text-4xl font-serif font-bold text-[#00224f]">Trải Nghiệm Hương Vị Độc Đáo</h2>
+                        <div className="w-16 h-1 bg-[#c9a84c] mx-auto my-4"></div>
+                        <p className="text-gray-500">Thưởng thức hương vị ẩm thực phong phú mang phong cách Á - Âu và những món hải sản tươi ngon đặc trưng vùng biển miền Trung.</p>
                     </div>
 
-                    <div className="grid grid-cols-12 gap-4 auto-rows-[200px]">
-                        {destinations.map((dest, idx) => (
-                            <div key={idx} className={`${dest.span} relative rounded-xl overflow-hidden group cursor-pointer shadow-sm hover:shadow-xl transition-all`}>
-                                <img src={dest.img} alt={dest.name} className="w-full h-full object-cover group-hover:scale-110 transition duration-700 ease-in-out" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-                                <div className="absolute bottom-4 left-4">
-                                    <h3 className="text-white font-bold text-xl md:text-2xl drop-shadow-md">{dest.name}</h3>
-                                    <p className="text-gray-200 text-sm font-medium opacity-0 group-hover:opacity-100 transition duration-300">Khám phá ngay &rarr;</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div className="bg-white rounded-3xl overflow-hidden shadow-lg border border-gray-100/50 hover:shadow-2xl transition duration-500 group flex flex-col justify-between">
+                            <div className="relative h-64 overflow-hidden">
+                                <img src="https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=800&q=80" alt="Nhà hàng Ocean" className="w-full h-full object-cover group-hover:scale-110 transition duration-700" />
+                                <div className="absolute inset-0 bg-black/30"></div>
+                            </div>
+                            <div className="p-8 flex-1 flex flex-col justify-between">
+                                <div className="space-y-3">
+                                    <h3 className="text-2xl font-bold text-[#00224f]">Nhà Hàng Ocean</h3>
+                                    <p className="text-gray-600 text-sm leading-relaxed">
+                                        Nằm tại tầng 2 hướng nhìn bãi biển tuyệt đẹp, phục vụ buffet sáng đa dạng cùng thực đơn gọi món phong phú với những đầu bếp tay nghề quốc tế hàng đầu.
+                                    </p>
+                                </div>
+                                <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400 font-bold uppercase tracking-wider">
+                                    <span>Tầng 2 | Sức chứa: 200 khách</span>
                                 </div>
                             </div>
-                        ))}
+                        </div>
+
+                        <div className="bg-white rounded-3xl overflow-hidden shadow-lg border border-gray-100/50 hover:shadow-2xl transition duration-500 group flex flex-col justify-between">
+                            <div className="relative h-64 overflow-hidden">
+                                <img src="https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=800&q=80" alt="Cá Chìa Vôi Restaurant" className="w-full h-full object-cover group-hover:scale-110 transition duration-700" />
+                                <div className="absolute inset-0 bg-black/30"></div>
+                            </div>
+                            <div className="p-8 flex-1 flex flex-col justify-between">
+                                <div className="space-y-3">
+                                    <h3 className="text-2xl font-bold text-[#00224f]">Nhà Hàng Cá Chìa Vôi</h3>
+                                    <p className="text-gray-600 text-sm leading-relaxed">
+                                        Nơi bạn thưởng thức ẩm thực Việt thuần chất cùng các món hải sản tươi sống đánh bắt trong ngày tại vùng biển Đà Nẵng, chế biến theo công thức độc quyền.
+                                    </p>
+                                </div>
+                                <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400 font-bold uppercase tracking-wider">
+                                    <span>Tầng 3 | Sức chứa: 150 khách</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-3xl overflow-hidden shadow-lg border border-gray-100/50 hover:shadow-2xl transition duration-500 group flex flex-col justify-between">
+                            <div className="relative h-64 overflow-hidden">
+                                <img src="https://images.unsplash.com/photo-1543007630-9710e4a00a20?auto=format&fit=crop&w=800&q=80" alt="Lobby Lounge" className="w-full h-full object-cover group-hover:scale-110 transition duration-700" />
+                                <div className="absolute inset-0 bg-black/30"></div>
+                            </div>
+                            <div className="p-8 flex-1 flex flex-col justify-between">
+                                <div className="space-y-3">
+                                    <h3 className="text-2xl font-bold text-[#00224f]">Lobby Lounge</h3>
+                                    <p className="text-gray-600 text-sm leading-relaxed">
+                                        Không gian hoàn hảo tại sảnh chính để thưởng thức một tách cà phê buổi sáng thư thả, tiệc trà chiều cao cấp cùng âm nhạc nhẹ nhàng hoặc cocktail khi đêm về.
+                                    </p>
+                                </div>
+                                <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400 font-bold uppercase tracking-wider">
+                                    <span>Tầng trệt | Sức chứa: 80 khách</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Dịch vụ & Tiện ích (Services & Amenities) */}
-            <div className="py-20 bg-white">
+            {/* 5. Trung tâm hội nghị & Sự kiện */}
+            <div id="events" className="py-24 bg-[#00224f]/5 relative overflow-hidden">
                 <div className="container mx-auto px-6">
-                    <div className="text-center mb-12">
-                        <h2 className="text-4xl font-bold text-gray-900 mb-4">Không gian thư giãn & tái tạo năng lượng</h2>
-                        <p className="text-gray-500 max-w-2xl mx-auto">Trải nghiệm các dịch vụ đẳng cấp tại Hotel MoonLight</p>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {[
-                            { name: "Sen Spa", desc: "Chăm sóc sức khỏe và làm đẹp với các liệu trình chuyên nghiệp.", icon: "💆", img: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=800&q=80" },
-                            { name: "Hồ bơi ngoài trời", desc: "Ngả lưng về biển, hướng góc nhìn toàn cảnh thành phố.", icon: "🏊", img: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=800&q=80" },
-                            { name: "Phòng Gym", desc: "Trang thiết bị hiện đại, vừa vận động vừa ngắm nhìn thành phố.", icon: "💪", img: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=800&q=80" },
-                            { name: "Quầy lưu niệm", desc: "Mang một phần của Đà Nẵng theo bạn trở về.", icon: "🎁", img: "https://tse4.mm.bing.net/th/id/OIP.8who6h6c1A0TnVhZXxWz6QHaE8?rs=1&pid=ImgDetMain&o=7&rm=3" },
-                        ].map((service, idx) => (
-                            <div key={idx} className="bg-gray-50 rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition group">
-                                <div className="relative h-48 overflow-hidden">
-                                    <img src={service.img} alt={service.name} className="w-full h-full object-cover group-hover:scale-110 transition duration-700" />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                                    <div className="absolute bottom-3 left-3 text-white">
-                                        <span className="text-2xl mr-2">{service.icon}</span>
-                                        <h3 className="text-xl font-bold">{service.name}</h3>
-                                    </div>
-                                </div>
-                                <div className="p-5">
-                                    <p className="text-gray-600 text-sm">{service.desc}</p>
-                                </div>
+                    <div className="flex flex-col lg:flex-row items-center gap-16">
+                        {/* Cột hình ảnh sảnh tiệc */}
+                        <div className="lg:w-1/2 relative group">
+                            <div className="absolute -inset-4 bg-gradient-to-tr from-[#c9a84c]/20 to-transparent rounded-3xl -z-10"></div>
+                            <img src="https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=1200&q=80" alt="Convention Hall" className="rounded-3xl shadow-2xl w-full h-[450px] object-cover transition duration-700 group-hover:scale-[1.02]" />
+                        </div>
+                        {/* Cột thông tin giới thiệu sảnh */}
+                        <div className="lg:w-1/2 space-y-6">
+                            <span className="text-sm font-extrabold uppercase tracking-widest text-[#c9a84c] block">
+                                HỘI NGHỊ & SỰ KIỆN CHUYÊN NGHIỆP
+                            </span>
+                            <h2 className="text-4xl font-serif font-bold text-[#00224f] leading-tight">
+                                Trung Tâm Hội Nghị <br />
+                                <span className="text-[#c9a84c]">Hàng Đầu</span> Tại Đà Nẵng
+                            </h2>
+                            <p className="text-gray-600 text-lg leading-relaxed">
+                                The MoonLight Da Nang là trung tâm sự kiện hàng đầu chuyên cung cấp không gian hội họp đẳng cấp từ quy mô tiệc cưới, sinh nhật ấm cúng cho tới các hội thảo, hội nghị thượng đỉnh quốc tế quy mô lên tới 500 khách.
+                            </p>
+
+                            <ul className="space-y-4">
+                                <li className="flex items-start gap-3">
+                                    <span className="text-[#c9a84c] text-xl">✨</span>
+                                    <p className="text-gray-700 font-semibold text-sm">Hệ thống 10 phòng họp linh hoạt, trang bị công nghệ cao.</p>
+                                </li>
+                                <li className="flex items-start gap-3">
+                                    <span className="text-[#c9a84c] text-xl">✨</span>
+                                    <p className="text-gray-700 font-semibold text-sm">Hệ thống âm thanh ánh sáng, màn hình LED thế hệ mới.</p>
+                                </li>
+                                <li className="flex items-start gap-3">
+                                    <span className="text-[#c9a84c] text-xl">✨</span>
+                                    <p className="text-gray-700 font-semibold text-sm">Đội ngũ kỹ thuật viên và chuyên viên sự kiện hỗ trợ 24/7.</p>
+                                </li>
+                            </ul>
+
+                            <div className="pt-4">
+                                <Link to="/contact" className="inline-block bg-[#00224f] text-white font-extrabold px-8 py-3.5 rounded-full hover:bg-[#001736] transition duration-300 shadow-xl uppercase tracking-wider text-sm">
+                                    Liên hệ đặt sự kiện
+                                </Link>
                             </div>
-                        ))}
+                        </div>
                     </div>
                 </div>
             </div>
 
-
-
-            {/* Đánh giá của khách hàng (Guest Reviews) */}
-            <div className="py-20 bg-blue-50">
+            {/* 6. Dịch vụ & Tiện ích (Services & Equipment) */}
+            <div id="services" className="py-24 bg-white">
                 <div className="container mx-auto px-6">
-                    <div className="text-center mb-12">
-                        <h2 className="text-4xl font-bold text-gray-900 mb-4">Khách hàng nói gì về chúng tôi</h2>
-                        <p className="text-gray-500 max-w-2xl mx-auto">Những trải nghiệm thực tế từ du khách đã nghỉ dưỡng tại Hotel MoonLight</p>
+                    <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
+                        <span className="text-sm font-extrabold uppercase tracking-widest text-[#c9a84c] block">THƯ GIÃN & TÁI TẠO</span>
+                        <h2 className="text-4xl font-serif font-bold text-[#00224f]">Không Gian Tiện Ích Cao Cấp</h2>
+                        <div className="w-16 h-1 bg-[#c9a84c] mx-auto my-4"></div>
+                        <p className="text-gray-500">Tận hưởng hồ bơi vô cực ngoài trời ngắm biển, phòng tập Gym tiện nghi và dịch vụ trị liệu cơ thể cao cấp tại Sen Spa.</p>
+                    </div>
+                    <ServiceView />
+                </div>
+            </div>
+
+            {/* Tiện nghi phòng (Equipment & Amenities) */}
+            <div className="py-24 bg-[#f8f9fa]">
+                <div className="container mx-auto px-6">
+                    <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
+                        <span className="text-sm font-extrabold uppercase tracking-widest text-[#c9a84c] block">TRANG THIẾT BỊ PHÒNG</span>
+                        <h2 className="text-4xl font-serif font-bold text-[#00224f]">Tiện Nghi Đạt Chuẩn 5 Sao</h2>
+                        <div className="w-16 h-1 bg-[#c9a84c] mx-auto my-4"></div>
+                        <p className="text-gray-500">Tất cả trang thiết bị đều được chuẩn bị kỹ lưỡng nhằm đem lại cảm giác tự do thoải mái và thư thái tối đa như đang ở chính ngôi nhà của mình.</p>
+                    </div>
+                    <EquipmentView />
+                </div>
+            </div>
+
+            {/* 7. Đánh giá của khách hàng (Guest Reviews) */}
+            <div className="py-24 bg-white">
+                <div className="container mx-auto px-6">
+                    <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
+                        <span className="text-sm font-extrabold uppercase tracking-widest text-[#c9a84c] block">Ý KIẾN KHÁCH HÀNG</span>
+                        <h2 className="text-4xl font-serif font-bold text-[#00224f]">Trải Nghiệm Khách Hàng Nói Lên Tất Cả</h2>
+                        <div className="w-16 h-1 bg-[#c9a84c] mx-auto my-4"></div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         {[
-                            { name: "Nguyễn Minh Anh", comment: "Phòng sạch sẽ, view biển cực đẹp. Nhân viên thân thiện và chu đáo. Chắc chắn sẽ quay lại!", rating: 5 },
-                            { name: "Trần Hoàng Nam", comment: "Khách sạn có buffet sáng đa dạng món, ăn khá hợp khẩu vị. Dịch vụ spa và hồ bơi tuyệt vời.", rating: 5 },
-                            { name: "Lê Thị Hương", comment: "Khách sạn còn tặng set bánh tạm biệt nữa, 100 điểm chu đáo. Mọi người nên tới trải nghiệm.", rating: 5 },
+                            { name: "Nguyễn Minh Anh", comment: "Khách sạn sạch sẽ, phòng có view biển cực đẹp. Nhân viên phục vụ rất chuyên nghiệp và thân thiện. Kỳ nghỉ thực sự tuyệt vời!", rating: 5 },
+                            { name: "Trần Hoàng Nam", comment: "Đồ ăn sáng tại nhà hàng Ocean rất hợp khẩu vị. Hồ bơi vô cực rộng rãi, chụp ảnh sống ảo rất đẹp. Nhất định sẽ quay lại MoonLight.", rating: 5 },
+                            { name: "Lê Thị Hương", comment: "Dịch vụ Sen Spa cực kỳ thư giãn. Nhân viên nhiệt tình, hỗ trợ check-in rất nhanh. Một trải nghiệm dịch vụ 5 sao đáng tiền.", rating: 5 },
                         ].map((review, idx) => (
-                            <div key={idx} className="bg-white p-6 rounded-2xl shadow-lg">
-                                <div className="flex items-center gap-1 mb-3 text-yellow-400">
+                            <div key={idx} className="bg-[#f8f9fa] p-8 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl transition duration-300">
+                                <div className="flex items-center gap-1 mb-4 text-[#c9a84c] text-lg">
                                     {[...Array(review.rating)].map((_, i) => <span key={i}>★</span>)}
                                 </div>
-                                <p className="text-gray-600 italic mb-4">"{review.comment}"</p>
-                                <p className="font-semibold text-gray-900">— {review.name}</p>
+                                <p className="text-gray-600 italic mb-6 leading-relaxed">"{review.comment}"</p>
+                                <p className="font-bold text-[#00224f]">— {review.name}</p>
                             </div>
                         ))}
                     </div>
                 </div>
             </div>
 
-            {/* Tin tức & Sự kiện (News & Events) */}
-            <div className="py-20 bg-white">
+            {/* 8. Vị trí lý tưởng & Bản đồ */}
+            <div id="location" className="py-24 bg-[#f8f9fa]">
                 <div className="container mx-auto px-6">
-                    <div className="text-center mb-12">
-                        <h2 className="text-4xl font-bold text-gray-900 mb-4">Tin tức Du lịch</h2>
-                        <p className="text-gray-500 max-w-2xl mx-auto">Cập nhật những thông tin mới nhất về du lịch và sự kiện tại Hotel MoonLight</p>
+                    <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
+                        <span className="text-sm font-extrabold uppercase tracking-widest text-[#c9a84c] block">VỊ TRÍ CHIẾN LƯỢC</span>
+                        <h2 className="text-4xl font-serif font-bold text-[#00224f]">Cửa Ngõ Khám Phá Đà Nẵng</h2>
+                        <div className="w-16 h-1 bg-[#c9a84c] mx-auto my-4"></div>
+                        <p className="text-gray-500">Tọa lạc ngay mặt đường Võ Nguyên Giáp đối diện công viên Biển Đông, cực kỳ thuận lợi để bạn khám phá toàn bộ danh thắng Đà Nẵng.</p>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        {[
-                            { title: "Địa điểm lý tưởng cho sự kiện MICE tại thành phố biển Đà Nẵng", img: "https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=800&q=80", date: "10/04/2026" },
-                            { title: "Du lịch Đà Nẵng - sự kết hợp hoàn hảo: khám phá và vận động", img: "https://blogyeuphuot.com/wp-content/uploads/2017/04/Dia-diem-du-lich-noi-tieng-o-Da-Nang.jpg", date: "05/04/2026" },
-                            { title: "Top 5 hoạt động dành cho cặp đôi khi du lịch Hạ Long", img: "https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=800&q=80", date: "01/04/2026" },
-                        ].map((news, idx) => (
-                            <div key={idx} className="bg-gray-50 rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition group cursor-pointer">
-                                <div className="relative h-48 overflow-hidden">
-                                    <img src={news.img} alt={news.title} className="w-full h-full object-cover group-hover:scale-110 transition duration-700" />
-                                    <div className="absolute bottom-3 left-3 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-semibold">{news.date}</div>
-                                </div>
-                                <div className="p-5">
-                                    <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">{news.title}</h3>
-                                    <Link to="/blog" className="text-blue-600 font-medium hover:text-blue-800 transition flex items-center gap-1">
-                                        Đọc thêm →
-                                    </Link>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-
-
-            {/* Vị trí lý tưởng & Bản đồ */}
-            <div className="py-20 bg-white">
-                <div className="container mx-auto px-6">
-                    <div className="text-center mb-12">
-                        <h2 className="text-4xl font-bold text-gray-900 mb-4">Vị trí lý tưởng</h2>
-                        <p className="text-gray-500 max-w-2xl mx-auto">Khách sạn tọa lạc ngay trung tâm thành phố biển, thuận tiện di chuyển đến các danh thắng nổi tiếng</p>
-                    </div>
-                    <div className="flex flex-col lg:flex-row gap-8">
+                    <div className="flex flex-col lg:flex-row gap-12">
                         {/* Bản đồ */}
-                        <div className="lg:w-2/3 h-96 rounded-2xl overflow-hidden shadow-lg">
+                        <div className="lg:w-2/3 h-[450px] rounded-3xl overflow-hidden shadow-xl border border-white">
                             <iframe
                                 title="Hotel MoonLight Location"
                                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3834.3081737461636!2d108.247654075815!3d16.0498761846875!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3142176aa5f2a52d%3A0x6b3c3c3b3b3b3b3b!2zMTkyIFbDtSBOZ3V5w6puIEdpw6FwLCBBbiBI4bqjaSBOYW0sIFBoxrDhu5tjIE5n4buNYyBIYW5oLCBTxqFuIFRyw6AsIMSQw6AgTuG6tW5nIDU1MDAwMCwgVmlldG5hbQ!5e0!3m2!1svi!2s!4v1713500000000!5m2!1svi!2s"
@@ -425,49 +478,49 @@ export default function Home() {
                             ></iframe>
                         </div>
                         {/* Thời gian di chuyển */}
-                        <div className="lg:w-1/3 bg-gray-50 p-8 rounded-2xl shadow-md">
-                            <h3 className="text-2xl font-bold text-gray-900 mb-6">Khám phá không giới hạn</h3>
-                            <ul className="space-y-6">
-                                <li className="flex items-center gap-4">
-                                    <span className="text-blue-600 text-2xl">🏖️</span>
-                                    <div>
-                                        <p className="font-semibold text-gray-800">Biển Mỹ Khê</p>
-                                        <p className="text-sm text-gray-500">2 phút đi bộ</p>
-                                    </div>
-                                </li>
-                                <li className="flex items-center gap-4">
-                                    <span className="text-blue-600 text-2xl">🐉</span>
-                                    <div>
-                                        <p className="font-semibold text-gray-800">Cầu Rồng</p>
-                                        <p className="text-sm text-gray-500">5 phút đi xe</p>
-                                    </div>
-                                </li>
-                                <li className="flex items-center gap-4">
-                                    <span className="text-blue-600 text-2xl">⛩️</span>
-                                    <div>
-                                        <p className="font-semibold text-gray-800">Chùa Linh Ứng</p>
-                                        <p className="text-sm text-gray-500">10 phút đi xe</p>
-                                    </div>
-                                </li>
-                                <li className="flex items-center gap-4">
-                                    <span className="text-blue-600 text-2xl">✈️</span>
-                                    <div>
-                                        <p className="font-semibold text-gray-800">Sân bay Quốc tế Đà Nẵng</p>
-                                        <p className="text-sm text-gray-500">15 phút đi xe</p>
-                                    </div>
-                                </li>
-                                <li className="flex items-center gap-4">
-                                    <span className="text-blue-600 text-2xl">🏮</span>
-                                    <div>
-                                        <p className="font-semibold text-gray-800">Phố cổ Hội An</p>
-                                        <p className="text-sm text-gray-500">45 phút đi xe</p>
-                                    </div>
-                                </li>
-                            </ul>
-                            <div className="mt-8 pt-6 border-t border-gray-200">
-                                <p className="text-gray-600 flex items-center gap-2">
-                                    <span>📍</span> 192 Võ Nguyên Giáp, An Hải, Đà Nẵng, Việt Nam
-                                </p>
+                        <div className="lg:w-1/3 bg-white p-8 rounded-3xl shadow-lg border border-gray-100 flex flex-col justify-between">
+                            <div>
+                                <h3 className="text-2xl font-bold text-[#00224f] mb-6">Kết Nối Không Giới Hạn</h3>
+                                <ul className="space-y-5">
+                                    <li className="flex items-center gap-4">
+                                        <span className="text-[#c9a84c] text-2xl">🏖️</span>
+                                        <div>
+                                            <p className="font-extrabold text-gray-800 text-sm">Bãi biển Mỹ Khê</p>
+                                            <p className="text-xs text-gray-400 font-medium">Đối diện khách sạn (2 phút đi bộ)</p>
+                                        </div>
+                                    </li>
+                                    <li className="flex items-center gap-4">
+                                        <span className="text-[#c9a84c] text-2xl">🐉</span>
+                                        <div>
+                                            <p className="font-extrabold text-gray-800 text-sm">Cầu Rồng & Cầu Sông Hàn</p>
+                                            <p className="text-xs text-gray-400 font-medium">5 phút đi xe</p>
+                                        </div>
+                                    </li>
+                                    <li className="flex items-center gap-4">
+                                        <span className="text-[#c9a84c] text-2xl">⛩️</span>
+                                        <div>
+                                            <p className="font-extrabold text-gray-800 text-sm">Chùa Linh Ứng & Sơn Trà</p>
+                                            <p className="text-xs text-gray-400 font-medium">10 phút đi xe</p>
+                                        </div>
+                                    </li>
+                                    <li className="flex items-center gap-4">
+                                        <span className="text-[#c9a84c] text-2xl">✈️</span>
+                                        <div>
+                                            <p className="font-extrabold text-gray-800 text-sm">Sân bay Quốc tế Đà Nẵng</p>
+                                            <p className="text-xs text-gray-400 font-medium">15 phút đi xe</p>
+                                        </div>
+                                    </li>
+                                    <li className="flex items-center gap-4">
+                                        <span className="text-[#c9a84c] text-2xl">🏮</span>
+                                        <div>
+                                            <p className="font-extrabold text-gray-800 text-sm">Phố cổ Hội An</p>
+                                            <p className="text-xs text-gray-400 font-medium">45 phút di chuyển bằng xe</p>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div className="mt-8 pt-6 border-t border-gray-100 text-gray-600 text-xs font-semibold flex items-center gap-2">
+                                <span>📍</span> 192 Võ Nguyên Giáp, Quận Sơn Trà, TP. Đà Nẵng, Việt Nam
                             </div>
                         </div>
                     </div>
@@ -475,62 +528,68 @@ export default function Home() {
             </div>
 
             {/* MEGA FOOTER */}
-            <footer className="bg-[#00224f] text-white pt-16">
-                <div className="container mx-auto px-6 pb-12 border-b border-blue-800 text-center">
-                    <h2 className="text-2xl font-light mb-2">Tiết kiệm thời gian và tiền bạc!</h2>
-                    <p className="text-gray-300 mb-6">Đăng ký nhận bản tin và chúng tôi sẽ gửi những ưu đãi tốt nhất cho bạn</p>
+            <footer className="bg-[#00224f] text-white pt-20 border-t border-[#c9a84c]/20">
+                <div className="container mx-auto px-6 pb-16 border-b border-white/5 text-center">
+                    <h2 className="text-3xl font-serif font-light mb-3">Đăng ký nhận ưu đãi độc quyền</h2>
+                    <p className="text-gray-300 text-sm mb-8">Trở thành thành viên thân thiết của MoonLight để nhận thông tin khuyến mãi phòng sớm nhất</p>
                     <div className="flex flex-col md:flex-row justify-center max-w-2xl mx-auto gap-2">
-                        <input type="email" placeholder="Địa chỉ email của bạn" className="px-4 py-3 rounded-md w-full text-gray-900 outline-none" />
-                        <button className="bg-blue-600 hover:bg-blue-700 px-8 py-3 rounded-md font-bold transition">Đăng ký</button>
+                        <input type="email" placeholder="Địa chỉ email của bạn" className="px-5 py-3.5 rounded-full w-full text-gray-900 outline-none focus:ring-2 focus:ring-[#c9a84c] text-sm" />
+                        <button className="bg-[#c9a84c] hover:bg-[#b08f3b] text-[#00224f] font-extrabold px-8 py-3.5 rounded-full transition duration-300 uppercase tracking-wider text-sm shadow-lg w-full md:w-auto shrink-0">Đăng ký</button>
                     </div>
                 </div>
 
-                <div className="container mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                    <div>
-                        <h3 className="text-xl font-bold mb-6">Hotel MoonLight</h3>
-                        <ul className="space-y-4 text-gray-300 text-sm">
-                            <li className="flex items-start gap-3"><span>📍</span> 123 Đường Bờ Biển, Phường Cẩm An, TP Hội An, Việt Nam</li>
-                            <li className="flex items-center gap-3"><span>📞</span> +84 236 123 4567</li>
-                            <li className="flex items-center gap-3"><span>✉️</span> contact@hotelmoonlight.vn</li>
+                <div className="container mx-auto px-6 py-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+                    <div className="space-y-6">
+                        <h3 className="text-2xl font-serif font-bold text-[#c9a84c]">THE MoonLight DA NANG</h3>
+                        <p className="text-gray-300 text-xs leading-relaxed">
+                            Khách sạn & Trung tâm Hội nghị 5 sao quốc tế hàng đầu bên bờ biển Mỹ Khê quyến rũ.
+                        </p>
+                        <ul className="space-y-4 text-gray-300 text-xs">
+                            <li className="flex items-start gap-3"><span>📍</span> 192 Võ Nguyên Giáp, Phường Phước Mỹ, Quận Sơn Trà, TP. Đà Nẵng, Việt Nam</li>
+                            <li className="flex items-center gap-3"><span>📞</span> (+84) 236 3913 999</li>
+                            <li className="flex items-center gap-3"><span>✉️</span> info@moonlight.com.vn</li>
                         </ul>
                     </div>
 
                     <div>
-                        <h3 className="text-lg font-bold mb-6">Về chúng tôi</h3>
+                        <h3 className="text-lg font-bold text-[#c9a84c] mb-6 uppercase tracking-wider text-xs">Về chúng tôi</h3>
                         <ul className="space-y-3 text-gray-300 text-sm">
-                            <li><a href="#" className="hover:text-white hover:underline">Giới thiệu HotelMoonLight</a></li>
-                            <li><a href="#" className="hover:text-white hover:underline">Tuyển dụng</a></li>
-                            <li><a href="#" className="hover:text-white hover:underline">Tin tức & Blog</a></li>
+                            <li><a href="#" className="hover:text-[#c9a84c] hover:underline transition">Giới thiệu The MoonLight</a></li>
+                            <li><a href="#" className="hover:text-[#c9a84c] hover:underline transition">Tuyển dụng</a></li>
+                            <li><a href="#" className="hover:text-[#c9a84c] hover:underline transition">Tin tức & Sự kiện</a></li>
+                            <li><a href="#" className="hover:text-[#c9a84c] hover:underline transition">Chính sách khách sạn</a></li>
                         </ul>
                     </div>
 
                     <div>
-                        <h3 className="text-lg font-bold mb-6">Hỗ trợ khách hàng</h3>
+                        <h3 className="text-lg font-bold text-[#c9a84c] mb-6 uppercase tracking-wider text-xs">Dịch vụ chính</h3>
                         <ul className="space-y-3 text-gray-300 text-sm">
-                            <li><a href="#" className="hover:text-white hover:underline">Trợ giúp & Liên hệ</a></li>
-                            <li><a href="#" className="hover:text-white hover:underline">Chính sách bảo mật</a></li>
-                            <li><a href="#" className="hover:text-white hover:underline">Điều khoản sử dụng</a></li>
+                            <li><Link to="/booking" className="hover:text-[#c9a84c] hover:underline transition">Đặt phòng nghỉ dưỡng</Link></li>
+                            <li><a href="#" className="hover:text-[#c9a84c] hover:underline transition">Nhà hàng & Ẩm thực</a></li>
+                            <li><a href="#" className="hover:text-[#c9a84c] hover:underline transition">Hội nghị & Tiệc cưới</a></li>
+                            <li><a href="#" className="hover:text-[#c9a84c] hover:underline transition">Trị liệu Sen Spa</a></li>
                         </ul>
                     </div>
 
-                    <div>
-                        <h3 className="text-lg font-bold mb-6">Kết nối với chúng tôi</h3>
-                        <div className="flex gap-4 mb-6">
-                            <a href="#" className="bg-white/10 p-2 rounded-full hover:bg-blue-600 transition"><svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" /></svg></a>
-                            <a href="#" className="bg-white/10 p-2 rounded-full hover:bg-pink-600 transition"><svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" /></svg></a>
-                            <a href="#" className="bg-white/10 p-2 rounded-full hover:bg-black transition"><svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg></a>
+                    <div className="space-y-6">
+                        <div>
+                            <h3 className="text-lg font-bold text-[#c9a84c] mb-6 uppercase tracking-wider text-xs">Kết nối với MoonLight</h3>
+                            <div className="flex gap-3">
+                                <a href="#" className="bg-white/5 p-2.5 rounded-full hover:bg-[#c9a84c] hover:text-[#00224f] transition"><svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" /></svg></a>
+                                <a href="#" className="bg-white/5 p-2.5 rounded-full hover:bg-[#c9a84c] hover:text-[#00224f] transition"><svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" /></svg></a>
+                                <a href="#" className="bg-white/5 p-2.5 rounded-full hover:bg-[#c9a84c] hover:text-[#00224f] transition"><svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg></a>
+                            </div>
                         </div>
-                        <h3 className="text-lg font-bold mb-4">Đối tác thanh toán</h3>
-                        <div className="flex gap-2">
-                            <div className="bg-white px-2 py-1 rounded text-blue-800 font-bold text-xs">VISA</div>
-                            <div className="bg-white px-2 py-1 rounded text-red-600 font-bold text-xs">MasterCard</div>
-                            <div className="bg-white px-2 py-1 rounded text-sky-500 font-bold text-xs italic">PayPal</div>
+                        <div className="text-xs text-gray-400 space-y-1">
+                            <p className="font-bold text-white text-sm">Chính Sách & Quy Định</p>
+                            <p>MST: 0401826399</p>
+                            <p>Đại diện: Ban Quản lý Khách sạn</p>
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-[#001736] py-4 text-center text-sm text-gray-400">
-                    <p>Bản quyền © 2026 HotelMoonLight. Bảo lưu mọi quyền.</p>
+                <div className="bg-[#001b3b] py-6 text-center text-xs text-gray-400 border-t border-white/5">
+                    <p>Bản quyền © 2026 The MoonLight Da Nang. Bảo lưu mọi quyền.</p>
                 </div>
             </footer>
         </div>

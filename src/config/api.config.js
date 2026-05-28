@@ -1,7 +1,7 @@
 // src/config/api.config.js
 import axios from 'axios';
-export const API_BASE_URL = import.meta.env.VITE_API_URL 
-  ?? 'https://hotel-booking-production-e37d.up.railway.app';
+export const API_BASE_URL = import.meta.env.VITE_API_URL
+    ?? 'https://hotel-booking-production-e37d.up.railway.app';
 // export const API_BASE_URL = import.meta.env.VITE_API_URL
 //     ?? 'https://localhost:7291';
 
@@ -55,7 +55,10 @@ apiClient.interceptors.response.use(
 
             // Lỗi 403: Không đủ quyền (Role) truy cập
             if (status === 403) {
-                console.error("Bạn không có quyền thực hiện hành động này!");
+                // Tắt log console nếu API là /api/rooms (vì đã biết Lễ Tân không có quyền)
+                if (error.config && error.config.url && !error.config.url.includes('/api/rooms')) {
+                    console.error("Bạn không có quyền thực hiện hành động này!");
+                }
             }
         }
         return Promise.reject(error);

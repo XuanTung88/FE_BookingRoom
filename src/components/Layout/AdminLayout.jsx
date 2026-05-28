@@ -127,8 +127,11 @@ export default function AdminLayout({ children }) {
             <span className="text-sm font-medium text-gray-700">
               Xin chào, {user?.hoTen ?? 'Admin'}
             </span>
-            <div className="h-9 w-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold shadow-sm">
-              {avatarLetter}
+            <div className="h-9 w-9 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-sm shrink-0">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-5 h-5">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
             </div>
           </div>
         </header>

@@ -2,9 +2,9 @@ export default function GanttChart({ currentDate, rooms, bookings, onSelectBooki
     const getWeekDays = (date) => {
         const d = new Date(date);
         const day = d.getDay();
-        const diff = d.getDate() - day + (day === 0 ? -6 : 1); 
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
         const monday = new Date(d.setDate(diff));
-        
+
         const week = [];
         for (let i = 0; i < 7; i++) {
             const nextDay = new Date(monday);
@@ -22,29 +22,34 @@ export default function GanttChart({ currentDate, rooms, bookings, onSelectBooki
 
     const getBookingStyle = (booking) => {
         const bCheckIn = new Date(booking.checkIn);
-        const bCheckOut = new Date(booking.checkOut);
+        let bCheckOut = new Date(booking.checkOut);
 
-        if (bCheckOut.getHours() < 12) {
-            bCheckOut.setDate(bCheckOut.getDate() - 1);
+        // Đảm bảo bCheckOut luôn là 12h trưa nếu backend trả về 00:00:00
+        if (bCheckOut.getHours() === 0 && bCheckOut.getMinutes() === 0) {
+            bCheckOut.setHours(12, 0, 0, 0);
         }
 
-        const bStart = bCheckIn.setHours(0,0,0,0);
-        const bEnd = bCheckOut.setHours(0,0,0,0);
-        const wStart = new Date(startOfWeek).setHours(0,0,0,0);
-        const wEnd = new Date(endOfWeek).setHours(0,0,0,0);
+        // Nếu checkOut bằng checkIn (đặt và trả trong ngày), ép cộng thêm vài tiếng để thanh không bị vô hình
+        if (bCheckOut.getTime() <= bCheckIn.getTime()) {
+            bCheckOut = new Date(bCheckIn.getTime() + 4 * 60 * 60 * 1000); // Tối thiểu 4 tiếng
+        }
 
-        if (bEnd < wStart || bStart > wEnd) return { display: 'none' };
+        const wStart = new Date(startOfWeek).setHours(0, 0, 0, 0);
+        const wEnd = new Date(endOfWeek).setHours(23, 59, 59, 999);
 
-        const visibleStart = Math.max(wStart, bStart);
-        const visibleEnd = Math.min(wEnd, bEnd);
+        const msInWeek = 7 * 24 * 60 * 60 * 1000;
 
-        const msPerDay = 1000 * 60 * 60 * 24;
-        const startDayIndex = Math.round((visibleStart - wStart) / msPerDay);
-        const durationDays = Math.round((visibleEnd - visibleStart) / msPerDay) + 1;
+        if (bCheckOut.getTime() < wStart || bCheckIn.getTime() > wEnd) return { display: 'none' };
+
+        const visibleStart = Math.max(wStart, bCheckIn.getTime());
+        const visibleEnd = Math.min(wEnd, bCheckOut.getTime());
+
+        const leftPercent = ((visibleStart - wStart) / msInWeek) * 100;
+        const widthPercent = ((visibleEnd - visibleStart) / msInWeek) * 100;
 
         return {
-            left: `${(startDayIndex / 7) * 100}%`,
-            width: `${(durationDays / 7) * 100}%`,
+            left: `${leftPercent}%`,
+            width: `${widthPercent}%`,
         };
     };
 
@@ -76,7 +81,7 @@ export default function GanttChart({ currentDate, rooms, bookings, onSelectBooki
                     return (
                         <div key={`floor-${tang}`}>
                             <div className="bg-gray-100 px-4 py-2 text-xs font-bold text-gray-500">TẦNG {tang}</div>
-                            
+
                             {roomsInFloor.map(room => (
                                 <div key={room.id} className="flex border-b border-gray-100 min-h-[80px] group hover:bg-gray-50 transition">
                                     <div className="w-40 p-4 border-r border-gray-100 flex flex-col justify-center shrink-0">
@@ -94,7 +99,7 @@ export default function GanttChart({ currentDate, rooms, bookings, onSelectBooki
                                             if (styleProps.display === 'none') return null;
 
                                             return (
-                                                <div key={booking.id} 
+                                                <div key={booking.id}
                                                     className="absolute top-1/2 -translate-y-1/2 h-12 p-1 z-10 cursor-pointer"
                                                     style={styleProps}
                                                     onClick={() => onSelectBooking(booking)}

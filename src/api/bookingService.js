@@ -1,6 +1,6 @@
 import apiClient, { ENDPOINTS } from '../config/api.config';
 
-export const fetchDashboardData = async (startDate, endDate, tangId = '') => {
+export const fetchDashboardData = async (startDate, endDate, tangId = '', targetDateStr = null) => {
     try {
         const ganttParams = { startDate, endDate };
         if (tangId) {
@@ -18,14 +18,23 @@ export const fetchDashboardData = async (startDate, endDate, tangId = '') => {
         }));
 
         let rawBookings = response.data?.bookings || [];
-        const now = new Date();
+        const now = targetDateStr ? new Date(targetDateStr) : new Date();
+        const localCO = JSON.parse(localStorage.getItem('local_checked_out') || '[]');
 
         const mappedBookings = rawBookings.map(b => {
-            let currentStatus = b.status || 'Chuẩn bị';
+            let currentStatus = (b.status || 'Chuẩn bị').trim();
+            if (localCO.includes(b.id)) {
+                currentStatus = 'Đã trả phòng';
+            }
             const expectedCheckIn = new Date(b.checkIn);
 
             if ((currentStatus === 'Chuẩn bị' || currentStatus === 'Chờ xác nhận') && expectedCheckIn < now) {
                 currentStatus = 'Quá hạn Check-in';
+            }
+
+            const expectedCheckOut = new Date(b.checkOut);
+            if ((currentStatus === 'Đang ở' || currentStatus === 'Đã nhận phòng') && expectedCheckOut < now) {
+                currentStatus = 'Quá hạn trả phòng';
             }
 
             return {
@@ -60,7 +69,8 @@ const getColorByStatus = (status) => {
         case 'Đã nhận phòng':
         case 'Đang ở': return 'bg-blue-600';
         case 'Quá hạn':
-        case 'Quá hạn Check-in': return 'bg-orange-500';
+        case 'Quá hạn Check-in':
+        case 'Quá hạn trả phòng': return 'bg-orange-500';
         case 'Đã đi':
         case 'Hoàn tất': return 'bg-gray-400';
         default: return 'bg-gray-500';

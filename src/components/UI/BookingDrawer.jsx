@@ -21,7 +21,29 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
     // STATE CHO POPUP THÔNG BÁO TÙY CHỈNH
     const [notify, setNotify] = useState({ isOpen: false, message: '', type: 'success', onConfirm: null });
 
-    const LE_TAN_ID = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
+    const getTokenData = () => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) return { id: null, role: null, roleId: null };
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            return {
+                id: payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] || payload.sub || payload.nameid || payload.id,
+                role: payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || payload.role,
+                roleId: payload.RoleId || payload.roleId
+            };
+        } catch (e) {
+            return { id: null, role: null, roleId: null };
+        }
+    };
+
+    const tokenData = getTokenData();
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+
+    // NẾU token KHÔNG có roleId (tức là tài khoản Lễ Tân bị lỗi chưa có trong bảng LeTans), 
+    // TUYỆT ĐỐI KHÔNG dùng tokenData.id (NguoiDungId) vì sẽ gây lỗi khóa ngoại. 
+    // Ta ưu tiên lấy tokenData.roleId vì đây là dữ liệu duy nhất đáng tin cậy từ Database hiện tại.
+    const LE_TAN_ID = tokenData.roleId;
+    const isReceptionist = tokenData.role === 'Receptionist' || tokenData.role === 'Lễ tân';
 
     useEffect(() => {
         if (selectedBooking) {
@@ -107,6 +129,10 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
     };
 
     const handleAddGuest = () => {
+        if (!isReceptionist) {
+            showNotification("Chỉ Lễ tân mới có quyền thực hiện chức năng này!", 'error');
+            return;
+        }
         if (newGuest.fullName && newGuest.cccd) {
             setGuests([...guests, newGuest]);
             setNewGuest({ fullName: '', cccd: '', nationality: 'Việt Nam' });
@@ -116,6 +142,11 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
     };
 
     const handleConfirmCheckin = async () => {
+        if (!isReceptionist) {
+            showNotification("Chỉ Lễ tân mới có quyền thực hiện chức năng này!", 'error');
+            return;
+        }
+
         if (guests.length === 0) {
             showNotification("Vui lòng thêm ít nhất 1 khách lưu trú!", 'error');
             return;
@@ -133,20 +164,48 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
     };
 
     const handleExecutePayment = async () => {
+        if (!isReceptionist) {
+            setNotify({ isOpen: true, message: "Chỉ Lễ tân mới có quyền thực hiện chức năng này!", type: 'error' });
+            return;
+        }
+
+        if (!tokenData.roleId) {
+            setNotify({
+                isOpen: true,
+                message: "LỖI DỮ LIỆU: Tài khoản Lễ tân của bạn đang bị lỗi (Không có hồ sơ trong bảng LeTans). Hệ thống từ chối thanh toán để bảo vệ Database. Giải pháp: Hãy tạo một tài khoản Lễ tân MỚI hoàn toàn, đăng nhập và hoàn thành hồ sơ cá nhân, sau đó thử lại!",
+                type: 'error'
+            });
+            return;
+        }
+
         try {
             if (billMode === 'split') {
-                const splitRes = await splitInvoice(selectedBooking.id, selectedBooking.chiTietDatPhongId, LE_TAN_ID);
-                const newId = splitRes.NewHoaDonId || splitRes.newHoaDonId || splitRes;
-                await confirmCheckout(newId, paymentMethod, LE_TAN_ID);
+                await splitInvoice(selectedBooking.id, selectedBooking.chiTietDatPhongId, LE_TAN_ID);
             } else {
                 await confirmCheckout(selectedBooking.id, paymentMethod, LE_TAN_ID);
             }
             showNotification("Thanh toán thành công!", 'success', () => {
+                // HACK: Bù đắp lỗi Backend không cập nhật trạng thái Đã trả phòng
+                // Lưu tạm các ChiTietDatPhongId đã trả phòng vào localStorage để Frontend tự tô màu
+                const localCO = JSON.parse(localStorage.getItem('local_checked_out') || '[]');
+                if (billMode === 'split') {
+                    if (!localCO.includes(selectedBooking.chiTietDatPhongId)) localCO.push(selectedBooking.chiTietDatPhongId);
+                } else if (bookingDetails) {
+                    const roomArray = bookingDetails.Rooms || bookingDetails.rooms || bookingDetails.phongs || [];
+                    roomArray.forEach(r => {
+                        const rId = r.ChiTietDatPhongId || r.chiTietDatPhongId;
+                        if (rId && !localCO.includes(rId)) localCO.push(rId);
+                    });
+                }
+                localStorage.setItem('local_checked_out', JSON.stringify(localCO));
+
                 if (onRefresh) onRefresh();
                 setSelectedBooking(null);
             });
         } catch (error) {
-            showNotification("Đã xảy ra lỗi khi thanh toán.", 'error');
+            console.error("Lỗi thanh toán:", error.response?.data || error);
+            const errorMsg = error.response?.data?.Message || error.response?.data?.Details || "Đã xảy ra lỗi khi thanh toán.";
+            showNotification(errorMsg, 'error');
         }
     };
 
@@ -172,6 +231,17 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
     const tienDenBu = invoice?.tienDenBu || 0;
     const tienDaCoc = invoice?.tienDaCoc || 0;
 
+    const allRoomsDetails = bookingDetails?.Rooms || bookingDetails?.rooms || bookingDetails?.phongs || [];
+    const areAllRoomsCheckedOut = allRoomsDetails.length > 0 && allRoomsDetails.every(r => !!r.ThoiGianTraThucTe || !!r.thoiGianTraThucTe);
+    const currentRoomDetails = allRoomsDetails.find(r => String(r.ChiTietDatPhongId) === String(selectedBooking.chiTietDatPhongId) || String(r.chiTietDatPhongId) === String(selectedBooking.chiTietDatPhongId));
+
+    const localCO = JSON.parse(localStorage.getItem('local_checked_out') || '[]');
+    const isThisRoomLocallyCO = localCO.includes(selectedBooking.chiTietDatPhongId);
+    const isThisRoomCheckedOut = isThisRoomLocallyCO || !!currentRoomDetails?.ThoiGianTraThucTe || !!currentRoomDetails?.thoiGianTraThucTe;
+
+    const roomServices = currentRoomDetails?.DichVus || currentRoomDetails?.dichVus || [];
+    const tienDichVuPhongNay = roomServices.reduce((sum, s) => sum + (s.ThanhTien || s.thanhTien || 0), 0);
+
     return (
         <>
             <div className="fixed inset-0 bg-black/20 z-40" onClick={() => setSelectedBooking(null)}></div>
@@ -184,9 +254,9 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
                             PHÒNG {rooms.find(r => r.id === selectedBooking.roomId)?.soPhong || 'N/A'}
                         </span>
                         <span className={`text-xs font-bold px-2.5 py-1 rounded-md ${(selectedBooking.status === 'Chuẩn bị' || selectedBooking.status === 'Chờ xác nhận') ? 'bg-emerald-100 text-emerald-700' :
-                                (selectedBooking.status === 'Đang ở' || selectedBooking.status === 'Đã nhận phòng') ? 'bg-blue-100 text-blue-700' :
-                                    (selectedBooking.status === 'Đã trả phòng' || selectedBooking.status === 'Hoàn tất') ? 'bg-gray-100 text-gray-700' :
-                                        'bg-orange-100 text-orange-700'
+                            (selectedBooking.status === 'Đang ở' || selectedBooking.status === 'Đã nhận phòng') ? 'bg-blue-100 text-blue-700' :
+                                (selectedBooking.status === 'Đã trả phòng' || selectedBooking.status === 'Hoàn tất') ? 'bg-gray-100 text-gray-700' :
+                                    'bg-orange-100 text-orange-700'
                             }`}>
                             {selectedBooking.status}
                         </span>
@@ -330,8 +400,10 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
                                                 </div>
                                                 <button
                                                     onClick={handleAddService}
-                                                    disabled={isAddingService || availableServices.length === 0}
-                                                    className="px-6 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg transition shadow-md whitespace-nowrap"
+                                                    disabled={isAddingService || availableServices.length === 0 || !isReceptionist}
+                                                    className={`px-6 font-bold rounded-lg transition shadow-md whitespace-nowrap ${isReceptionist ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                                        }`}
+                                                    title={!isReceptionist ? "Chỉ Lễ tân mới có quyền gọi thêm dịch vụ" : ""}
                                                 >
                                                     {isAddingService ? 'Đang thêm...' : 'Xác nhận'}
                                                 </button>
@@ -339,17 +411,17 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
                                         </div>
                                     </div>
 
-                                    {invoice?.chiTietDichVu && invoice.chiTietDichVu.length > 0 && (
+                                    {roomServices && roomServices.length > 0 && (
                                         <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
                                             <h4 className="font-bold text-gray-800 mb-4 text-sm uppercase">Lịch sử dịch vụ phòng này</h4>
                                             <div className="space-y-2">
-                                                {invoice.chiTietDichVu.map((item, idx) => (
+                                                {roomServices.map((item, idx) => (
                                                     <div key={idx} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-100">
                                                         <div>
-                                                            <span className="font-semibold text-gray-800 block">{item.tenDichVu}</span>
-                                                            <span className="text-xs text-gray-500">Số lượng: {item.soLuong}</span>
+                                                            <span className="font-semibold text-gray-800 block">{item.TenDichVu || item.tenDichVu}</span>
+                                                            <span className="text-xs text-gray-500">Số lượng: {item.SoLuong || item.soLuong}</span>
                                                         </div>
-                                                        <span className="font-bold text-blue-600">{formatCurrency(item.thanhTien)}</span>
+                                                        <span className="font-bold text-blue-600">{formatCurrency(item.ThanhTien || item.thanhTien)}</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -406,14 +478,36 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-3 pt-2">
-                                        <button onClick={() => setBillMode('total')} className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 rounded-xl shadow-md transition flex flex-col items-center justify-center">
-                                            <span className="text-sm">Thanh toán Tổng</span>
-                                            <span className="text-[10px] opacity-90 font-normal">(Toàn bộ các phòng)</span>
-                                        </button>
-                                        <button onClick={() => setBillMode('split')} className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3.5 rounded-xl shadow-md transition flex flex-col items-center justify-center">
-                                            <span className="text-sm">Tách Bill riêng</span>
-                                            <span className="text-[10px] opacity-90 font-normal">(Chỉ phòng {rooms.find(r => r.id === selectedBooking.roomId)?.soPhong})</span>
-                                        </button>
+                                        {areAllRoomsCheckedOut ? (
+                                            <div className="col-span-2 text-center p-3 bg-emerald-50 text-emerald-700 rounded-xl font-bold border border-emerald-100">
+                                                Booking này đã được thanh toán hoàn tất!
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <button
+                                                    onClick={() => isReceptionist ? setBillMode('total') : showNotification("Chỉ Lễ tân mới có quyền thanh toán!", 'error')}
+                                                    className={`${isReceptionist ? 'bg-orange-500 hover:bg-orange-600 cursor-pointer' : 'bg-gray-300 cursor-not-allowed'} text-white font-bold py-3.5 rounded-xl shadow-md transition flex flex-col items-center justify-center`}
+                                                    title={!isReceptionist ? "Chỉ Lễ tân mới có quyền thanh toán" : ""}
+                                                >
+                                                    <span className="text-sm">Thanh toán Tổng</span>
+                                                    <span className="text-[10px] opacity-90 font-normal">(Toàn bộ các phòng)</span>
+                                                </button>
+                                                {isThisRoomCheckedOut ? (
+                                                    <div className="flex items-center justify-center bg-gray-100 text-gray-500 font-bold py-3.5 rounded-xl shadow-sm border border-gray-200">
+                                                        <span className="text-sm">Phòng này đã thanh toán</span>
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => isReceptionist ? setBillMode('split') : showNotification("Chỉ Lễ tân mới có quyền thanh toán!", 'error')}
+                                                        className={`${isReceptionist ? 'bg-indigo-500 hover:bg-indigo-600 cursor-pointer' : 'bg-gray-300 cursor-not-allowed'} text-white font-bold py-3.5 rounded-xl shadow-md transition flex flex-col items-center justify-center`}
+                                                        title={!isReceptionist ? "Chỉ Lễ tân mới có quyền thanh toán" : ""}
+                                                    >
+                                                        <span className="text-sm">Tách Bill riêng</span>
+                                                        <span className="text-[10px] opacity-90 font-normal">(Chỉ phòng {rooms.find(r => r.id === selectedBooking.roomId)?.soPhong})</span>
+                                                    </button>
+                                                )}
+                                            </>
+                                        )}
                                     </div>
                                 </>
                             )}
@@ -424,7 +518,7 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
                     {billMode && invoice && (() => {
                         const isTotal = billMode === 'total';
                         const hienThiTienPhong = isTotal ? tienPhong : selectedBooking.price;
-                        const hienThiDichVu = invoice.tienDichVu || 0;
+                        const hienThiDichVu = isTotal ? tienDichVu : tienDichVuPhongNay;
                         const hienThiDenBu = invoice.tienDenBu || 0; // Đã thêm lấy tiền đền bù
                         const hienThiTienCoc = isTotal ? tienDaCoc : (tienDaCoc >= selectedBooking.price ? selectedBooking.price : 0);
 
@@ -503,8 +597,9 @@ export default function BookingDrawer({ selectedBooking, setSelectedBooking, act
                 <div className="p-6 bg-white border-t border-gray-100 shrink-0">
                     {activeTab === 'info' && !isCheckinMode && !billMode && (selectedBooking.status === 'Chuẩn bị' || selectedBooking.status === 'Chờ xác nhận' || selectedBooking.status === 'Quá hạn Check-in') && (
                         <button
-                            onClick={() => setIsCheckinMode(true)}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition"
+                            onClick={() => isReceptionist ? setIsCheckinMode(true) : showNotification("Chỉ Lễ tân mới có quyền Check-in!", 'error')}
+                            className={`w-full ${isReceptionist ? 'bg-blue-600 hover:bg-blue-700 cursor-pointer' : 'bg-gray-300 cursor-not-allowed'} text-white font-bold py-3.5 rounded-xl shadow-lg transition`}
+                            title={!isReceptionist ? "Chỉ Lễ tân mới có quyền Check-in" : ""}
                         >
                             Tiến hành Check-in
                         </button>
